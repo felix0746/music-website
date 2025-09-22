@@ -1,27 +1,30 @@
 import { courses } from '../lib/courseData';
+import FadeIn from './FadeIn';
 
 export default function CourseOverview() {
   return (
     <section id="courses" className="py-12 sm:py-16 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
-            我們的課程
-          </h2>
-          <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto px-4">
-            專業的音樂課程設計，滿足不同學習需求
-          </p>
-        </div>
+        <FadeIn>
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
+              我們的課程
+            </h2>
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto px-4">
+              專業的音樂課程設計，滿足不同學習需求
+            </p>
+          </div>
+        </FadeIn>
 
         {/* Courses List */}
         <div className="space-y-8 sm:space-y-12">
-          {courses.map((course) => (
-            <div 
-              key={course.id}
-              id={`course-${course.slug}`}
-              className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden"
-            >
+          {courses.map((course, index) => (
+            <FadeIn key={course.id} delay={index * 0.2}>
+              <div 
+                id={`course-${course.slug}`}
+                className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden"
+              >
               <div className="flex flex-col lg:flex-row">
                 {/* Course Image */}
                 <div className="lg:w-1/2">
@@ -71,6 +74,7 @@ export default function CourseOverview() {
                 </div>
               </div>
             </div>
+            </FadeIn>
           ))}
         </div>
       </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import FadeIn from './FadeIn';
 
 export default function EnrollmentSection() {
   const [formData, setFormData] = useState({
@@ -57,11 +58,14 @@ export default function EnrollmentSection() {
   return (
     <section id="enroll" className="bg-white py-12 sm:py-16 md:py-20 lg:py-24">
         <div className="container mx-auto max-w-2xl px-4 sm:px-6">
-            <div className="text-center">
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900">現在就開啟你的音樂旅程</h2>
-                <p className="mt-2 text-base sm:text-lg leading-6 sm:leading-8 text-slate-600 px-4">填寫表單，送出你的報名資訊，我會盡快與你聯繫！</p>
-            </div>
-            <div className="mt-8 sm:mt-12 rounded-2xl bg-slate-50 p-4 sm:p-6 md:p-8 shadow-lg">
+        <FadeIn>
+          <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900">現在就開啟你的音樂旅程</h2>
+              <p className="mt-2 text-base sm:text-lg leading-6 sm:leading-8 text-slate-600 px-4">填寫表單，送出你的報名資訊，我會盡快與你聯繫！</p>
+          </div>
+        </FadeIn>
+            <FadeIn delay={0.2}>
+              <div className="mt-8 sm:mt-12 rounded-2xl bg-slate-50 p-4 sm:p-6 md:p-8 shadow-lg">
                 {/* 訊息顯示區域 */}
                 {message && (
                   <div className={`mb-6 p-4 rounded-lg text-center ${
@@ -131,15 +135,18 @@ export default function EnrollmentSection() {
                       </button>
                     </div>
                 </form>
-            </div>
-            <div className="mt-8 sm:mt-12 text-center text-slate-600">
-                <h3 className="font-semibold text-base sm:text-lg text-slate-800">報名流程說明</h3>
-                <div className="mt-2 space-y-1 text-sm sm:text-base">
-                    <p>1. 填寫並送出上方表單。</p>
-                    <p>2. **送出後，頁面將會顯示匯款帳號（此為佔位符功能，未來會串接後端）。**</p>
-                    <p>3. 完成匯款後，請將您的「姓名」與「帳號後五碼」透過 Email 或官方 Line 通知我們。</p>
-                </div>
-            </div>
+              </div>
+            </FadeIn>
+            <FadeIn delay={0.4}>
+              <div className="mt-8 sm:mt-12 text-center text-slate-600">
+                  <h3 className="font-semibold text-base sm:text-lg text-slate-800">報名流程說明</h3>
+                  <div className="mt-2 space-y-1 text-sm sm:text-base">
+                      <p>1. 填寫並送出上方表單。</p>
+                      <p>2. **送出後，頁面將會顯示匯款帳號（此為佔位符功能，未來會串接後端）。**</p>
+                      <p>3. 完成匯款後，請將您的「姓名」與「帳號後五碼」透過 Email 或官方 Line 通知我們。</p>
+                  </div>
+              </div>
+            </FadeIn>
         </div>
     </section>
   );

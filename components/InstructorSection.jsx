@@ -1,20 +1,24 @@
 import Image from 'next/image';
+import FadeIn from './FadeIn';
 
 export default function InstructorSection() {
   return (
     <section id="instructor" className="bg-slate-50 py-12 sm:py-16 md:py-20 lg:py-24">
       <div className="container mx-auto max-w-5xl px-4 sm:px-6">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-12">
-          <div className="md:col-span-1 flex justify-center md:justify-start">
-            <Image
-              src="https://placehold.co/400x400/e2e8f0/334155?text=Your\nPhoto"
-              alt="講師照片佔位符"
-              width={400}
-              height={400}
-              className="h-48 w-48 sm:h-56 sm:w-56 md:h-64 md:w-64 lg:h-80 lg:w-80 rounded-full object-cover shadow-lg"
-            />
-          </div>
-          <div className="md:col-span-2 text-center md:text-left">
+          <FadeIn delay={0.2}>
+            <div className="md:col-span-1 flex justify-center md:justify-start">
+              <Image
+                src="https://placehold.co/400x400/e2e8f0/334155?text=Your\nPhoto"
+                alt="講師照片佔位符"
+                width={400}
+                height={400}
+                className="h-48 w-48 sm:h-56 sm:w-56 md:h-64 md:w-64 lg:h-80 lg:w-80 rounded-full object-cover shadow-lg"
+              />
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.4}>
+            <div className="md:col-span-2 text-center md:text-left">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
               關於我
             </h2>
@@ -35,7 +39,7 @@ export default function InstructorSection() {
                 </svg>
               </a>
             </div>
-          </div>
+          </FadeIn>
         </div>
       </div>
     </section>

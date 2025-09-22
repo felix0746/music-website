@@ -1,3 +1,5 @@
+import FadeIn from './FadeIn';
+
 const testimonials = [
   {
     id: 1,
@@ -26,18 +28,21 @@ export default function TestimonialsSection() {
   return (
     <section id="testimonials" className="bg-white py-12 sm:py-16 md:py-20 lg:py-24">
       <div className="container mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="text-center mb-8 sm:mb-12 md:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
-            學員見證
-          </h2>
-          <p className="mt-2 text-base sm:text-lg leading-6 sm:leading-8 text-slate-600 px-4">
-            聽聽學員們的學習心得與成長故事
-          </p>
-        </div>
+        <FadeIn>
+          <div className="text-center mb-8 sm:mb-12 md:mb-16">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900">
+              學員見證
+            </h2>
+            <p className="mt-2 text-base sm:text-lg leading-6 sm:leading-8 text-slate-600 px-4">
+              聽聽學員們的學習心得與成長故事
+            </p>
+          </div>
+        </FadeIn>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {testimonials.map((testimonial) => (
-            <div key={testimonial.id} className="bg-slate-50 rounded-lg p-4 sm:p-6 shadow-sm">
+          {testimonials.map((testimonial, index) => (
+            <FadeIn key={testimonial.id} delay={index * 0.1}>
+              <div className="bg-slate-50 rounded-lg p-4 sm:p-6 shadow-sm">
               <div className="flex items-center mb-3 sm:mb-4">
                 {[...Array(testimonial.rating)].map((_, i) => (
                   <svg
@@ -58,6 +63,7 @@ export default function TestimonialsSection() {
                 <p className="text-xs sm:text-sm text-slate-600">{testimonial.course}</p>
               </div>
             </div>
+            </FadeIn>
           ))}
         </div>
       </div>
