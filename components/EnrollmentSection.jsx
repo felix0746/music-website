@@ -2,15 +2,21 @@
 
 import { useState } from 'react';
 import FadeIn from './FadeIn';
+import { motion } from 'framer-motion';
+
+// 創建 motion(Button) 元件
+const MotionButton = motion('button');
 
 export default function EnrollmentSection() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    confirmEmail: '',
     course: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -24,14 +30,26 @@ export default function EnrollmentSection() {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage('');
-    
+    setError('');
+
+    // 檢查 Email 是否一致
+    if (formData.email !== formData.confirmEmail) {
+      setError('兩次輸入的 Email 不符！');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/enroll', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          course: formData.course
+        }),
       });
 
       const result = await response.json();
@@ -42,6 +60,7 @@ export default function EnrollmentSection() {
         setFormData({
           name: '',
           email: '',
+          confirmEmail: '',
           course: ''
         });
       } else {
@@ -57,15 +76,15 @@ export default function EnrollmentSection() {
 
   return (
     <section id="enroll" className="bg-white py-12 sm:py-16 md:py-20 lg:py-24">
-        <div className="container mx-auto max-w-2xl px-4 sm:px-6">
-        <FadeIn>
-          <div className="text-center">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900">現在就開啟你的音樂旅程</h2>
-              <p className="mt-2 text-base sm:text-lg leading-6 sm:leading-8 text-slate-600 px-4">填寫表單，送出你的報名資訊，我會盡快與你聯繫！</p>
-          </div>
-        </FadeIn>
-            <FadeIn delay={0.2}>
-              <div className="mt-8 sm:mt-12 rounded-2xl bg-slate-50 p-4 sm:p-6 md:p-8 shadow-lg">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:ml-20 lg:mr-20">
+          <FadeIn>
+            <div className="text-center mb-8 sm:mb-12">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mb-3 sm:mb-4">現在就開啟你的音樂旅程</h2>
+                <p className="text-base sm:text-lg leading-6 sm:leading-8 text-slate-600">填寫表單，送出你的報名資訊，我會盡快與你聯繫！</p>
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.2}>
+            <div className="rounded-2xl bg-slate-50 p-4 sm:p-6 md:p-8 shadow-lg max-w-3xl mx-auto">
                 {/* 訊息顯示區域 */}
                 {message && (
                   <div className={`mb-6 p-4 rounded-lg text-center ${
@@ -74,6 +93,13 @@ export default function EnrollmentSection() {
                       : 'bg-red-100 text-red-800 border border-red-200'
                   }`}>
                     {message}
+                  </div>
+                )}
+
+                {/* 錯誤訊息顯示區域 */}
+                {error && (
+                  <div className="mb-6 p-4 rounded-lg text-center bg-red-100 text-red-800 border border-red-200">
+                    {error}
                   </div>
                 )}
                 
@@ -97,11 +123,24 @@ export default function EnrollmentSection() {
                             type="email" 
                             id="email" 
                             name="email" 
-                            value={formData.email}
-                            onChange={handleInputChange}
+                            value={formData.email} 
+                            onChange={handleInputChange} 
                             className="mt-1 sm:mt-2 block w-full px-3 py-2 sm:py-3 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base" 
                             placeholder="我們會透過此信箱與您聯繫" 
-                            required
+                            required 
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="confirmEmail" className="block text-sm sm:text-base md:text-lg font-medium text-slate-700">確認 Email</label>
+                        <input 
+                            type="email" 
+                            id="confirmEmail" 
+                            name="confirmEmail" 
+                            value={formData.confirmEmail} 
+                            onChange={handleInputChange} 
+                            className="mt-1 sm:mt-2 block w-full px-3 py-2 sm:py-3 border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base" 
+                            placeholder="請再次輸入您的 Email" 
+                            required 
                         />
                     </div>
                     <div>
@@ -122,31 +161,34 @@ export default function EnrollmentSection() {
                         </select>
                     </div>
                     <div className="text-center">
-                      <button 
-                        type="submit" 
+                      <MotionButton
+                        type="submit"
                         disabled={isSubmitting}
                         className={`mt-4 w-full sm:w-auto font-semibold py-3 px-6 sm:px-8 rounded-lg text-sm sm:text-base md:text-lg transition-colors duration-200 ${
-                          isSubmitting 
-                            ? 'bg-gray-400 cursor-not-allowed text-white' 
+                          isSubmitting
+                            ? 'bg-gray-400 cursor-not-allowed text-white'
                             : 'bg-blue-600 hover:bg-blue-700 text-white'
                         }`}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        transition={{ duration: 0.2 }}
                       >
                         {isSubmitting ? '提交中...' : '確認送出，取得匯款資訊'}
-                      </button>
+                      </MotionButton>
                     </div>
                 </form>
               </div>
             </FadeIn>
-            <FadeIn delay={0.4}>
-              <div className="mt-8 sm:mt-12 text-center text-slate-600">
+          <FadeIn delay={0.4}>
+            <div className="mt-8 sm:mt-12 text-center text-slate-600 max-w-3xl mx-auto">
                   <h3 className="font-semibold text-base sm:text-lg text-slate-800">報名流程說明</h3>
                   <div className="mt-2 space-y-1 text-sm sm:text-base">
                       <p>1. 填寫並送出上方表單。</p>
                       <p>2. **送出後，頁面將會顯示匯款帳號（此為佔位符功能，未來會串接後端）。**</p>
                       <p>3. 完成匯款後，請將您的「姓名」與「帳號後五碼」透過 Email 或官方 Line 通知我們。</p>
                   </div>
-              </div>
-            </FadeIn>
+                </div>
+              </FadeIn>
         </div>
     </section>
   );

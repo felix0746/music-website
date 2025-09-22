@@ -1,10 +1,13 @@
+'use client';
+
 import { courses } from '../lib/courseData';
 import FadeIn from './FadeIn';
+import { motion } from 'framer-motion';
 
 export default function CourseOverview() {
   return (
     <section id="courses" className="py-12 sm:py-16 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:ml-20 lg:mr-20">
         {/* Section Header */}
         <FadeIn>
           <div className="text-center mb-8 sm:mb-12">
@@ -21,9 +24,12 @@ export default function CourseOverview() {
         <div className="space-y-8 sm:space-y-12">
           {courses.map((course, index) => (
             <FadeIn key={course.id} delay={index * 0.2}>
-              <div 
+              <motion.div 
                 id={`course-${course.slug}`}
                 className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden"
+                whileHover={{ scale: 1.05, y: -8 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.3 }}
               >
               <div className="flex flex-col lg:flex-row">
                 {/* Course Image */}
@@ -73,7 +79,7 @@ export default function CourseOverview() {
                   </a>
                 </div>
               </div>
-            </div>
+            </motion.div>
             </FadeIn>
           ))}
         </div>
