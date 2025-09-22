@@ -14,6 +14,15 @@ export async function POST(request) {
       );
     }
 
+    // 檢查 API Key
+    if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 'dummy-key') {
+      console.error('Resend API Key 未設定');
+      return Response.json(
+        { error: 'Email 服務未設定，請聯繫管理員' },
+        { status: 500 }
+      );
+    }
+
     // 課程名稱對應
     const courseNames = {
       'singing': '歌唱課',
@@ -93,9 +102,24 @@ export async function POST(request) {
 
     // 檢查是否有錯誤
     if (adminEmailResult.error || studentEmailResult.error) {
-      console.error('Resend error:', adminEmailResult.error || studentEmailResult.error);
+      console.error('Admin email error:', adminEmailResult.error);
+      console.error('Student email error:', studentEmailResult.error);
+      
+      // 如果管理員 Email 成功但學員 Email 失敗，仍然回傳部分成功
+      if (adminEmailResult.data && studentEmailResult.error) {
+        return Response.json(
+          { 
+            success: true, 
+            message: '報名成功！管理員已收到通知，但付款資訊發送失敗，請聯繫我們。',
+            adminEmailId: adminEmailResult.data?.id,
+            error: '學員 Email 發送失敗'
+          },
+          { status: 200 }
+        );
+      }
+      
       return Response.json(
-        { error: '發送 Email 失敗' },
+        { error: '發送 Email 失敗', details: adminEmailResult.error || studentEmailResult.error },
         { status: 500 }
       );
     }
