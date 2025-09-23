@@ -21,6 +21,28 @@ function getLineClient() {
   return lineClient
 }
 
+// 安全回覆訊息函數，處理 replyToken 錯誤
+async function safeReplyMessage(lineClient, replyToken, text) {
+  try {
+    await lineClient.replyMessage(replyToken, {
+      type: 'text',
+      text: text
+    })
+  } catch (error) {
+    console.error('回覆訊息失敗:', error.message)
+    // 如果回覆失敗，使用 pushMessage 作為備選
+    try {
+      const userId = replyToken.split('_')[0] // 從 replyToken 提取 userId（這是一個簡化的方法）
+      await lineClient.pushMessage(userId, {
+        type: 'text',
+        text: text
+      })
+    } catch (pushError) {
+      console.error('Push 訊息也失敗:', pushError.message)
+    }
+  }
+}
+
 export async function POST(request) {
   try {
     const body = await request.text()
@@ -71,10 +93,7 @@ async function handleTextMessage(event) {
         await handlePaymentReport(userId, userMessage, replyToken)
       } else {
         // 發送一般回覆
-        await lineClientInstance.replyMessage(replyToken, {
-          type: 'text',
-          text: '您好！如果您已完成付款，請回覆「姓名」與「帳號後五碼」給我們確認。'
-        })
+        await safeReplyMessage(lineClientInstance, replyToken, '您好！如果您已完成付款，請回覆「姓名」與「帳號後五碼」給我們確認。')
       }
     } else {
       // 新用戶，引導報名流程
@@ -83,10 +102,7 @@ async function handleTextMessage(event) {
   } catch (error) {
     console.error('處理訊息時發生錯誤:', error)
     const lineClientInstance = getLineClient()
-    await lineClientInstance.replyMessage(replyToken, {
-      type: 'text',
-      text: '抱歉，系統暫時無法處理您的訊息，請稍後再試。'
-    })
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，系統暫時無法處理您的訊息，請稍後再試。')
   }
 }
 
@@ -96,9 +112,7 @@ async function handleNewUser(userId, message, replyToken) {
   // 檢查是否包含報名資訊
   if (message.includes('報名') || message.includes('課程')) {
     // 引導用戶填寫報名資訊
-    await lineClientInstance.replyMessage(replyToken, {
-      type: 'text',
-      text: `🎵 歡迎報名我們的音樂課程！
+    await safeReplyMessage(lineClientInstance, replyToken, `🎵 歡迎報名我們的音樂課程！
 
 請按照以下格式提供您的資訊：
 
@@ -109,8 +123,7 @@ async function handleNewUser(userId, message, replyToken) {
 姓名：張小明
 課程：歌唱課
 
-我們會立即為您處理報名並發送付款資訊！`
-    })
+我們會立即為您處理報名並發送付款資訊！`)
   } else if ((message.includes('姓名：') || message.includes('姓名:')) && (message.includes('課程：') || message.includes('課程:'))) {
     // 解析報名資訊，支援中文和英文冒號
     const nameMatch = message.match(/姓名[：:]([^\n]+)/)
@@ -131,10 +144,7 @@ async function handleNewUser(userId, message, replyToken) {
         })
 
         if (existingUser) {
-          await lineClientInstance.replyMessage(replyToken, {
-            type: 'text',
-            text: '您已經報名過了！'
-          })
+          await safeReplyMessage(lineClientInstance, replyToken, '您已經報名過了！')
           await prismaInstance.$disconnect()
           return
         }
@@ -194,35 +204,24 @@ async function handleNewUser(userId, message, replyToken) {
 
         await lineClientInstance.pushMessage(userId, paymentMessage)
 
-        await lineClientInstance.replyMessage(replyToken, {
-          type: 'text',
-          text: `✅ 報名成功！付款資訊已發送給您，請查看上方訊息。`
-        })
+        await safeReplyMessage(lineClientInstance, replyToken, `✅ 報名成功！付款資訊已發送給您，請查看上方訊息。`)
 
         await prismaInstance.$disconnect()
         
       } catch (error) {
         console.error('報名處理錯誤:', error)
         const lineClientInstance = getLineClient()
-        await lineClientInstance.replyMessage(replyToken, {
-          type: 'text',
-          text: `❌ 報名失敗：${error.message}`
-        })
+        await safeReplyMessage(lineClientInstance, replyToken, `❌ 報名失敗：${error.message}`)
       }
     } else {
-      await lineClientInstance.replyMessage(replyToken, {
-        type: 'text',
-        text: `請按照正確格式提供資訊：
+      await safeReplyMessage(lineClientInstance, replyToken, `請按照正確格式提供資訊：
 
 姓名：[您的姓名]
-課程：[歌唱課/吉他課/創作課/春曲創作團班]`
-      })
+課程：[歌唱課/吉他課/創作課/春曲創作團班]`)
     }
   } else {
     // 一般歡迎訊息
-    await lineClientInstance.replyMessage(replyToken, {
-      type: 'text',
-      text: `🎵 歡迎來到 MyMusic 音樂課程！
+    await safeReplyMessage(lineClientInstance, replyToken, `🎵 歡迎來到 MyMusic 音樂課程！
 
 我們提供以下課程：
 • 歌唱課 - 學習如何愛上自己的歌聲
@@ -230,8 +229,7 @@ async function handleNewUser(userId, message, replyToken) {
 • 創作課 - 探索音樂創作的奧秘
 • 春曲創作團班 - 與同好交流，一起把創作帶上舞台
 
-如需報名，請回覆「報名」開始流程！`
-    })
+如需報名，請回覆「報名」開始流程！`)
   }
 }
 
@@ -248,12 +246,9 @@ async function handlePaymentReport(userId, message, replyToken) {
     }
   })
 
-  await lineClientInstance.replyMessage(replyToken, {
-    type: 'text',
-    text: `✅ 付款資訊已收到！
+  await safeReplyMessage(lineClientInstance, replyToken, `✅ 付款資訊已收到！
 
 我們會盡快確認您的付款，並在 24 小時內與您聯繫安排課程。
 
-感謝您的報名，祝您學習愉快！🎵`
-  })
+感謝您的報名，祝您學習愉快！🎵`)
 }
