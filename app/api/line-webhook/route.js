@@ -93,7 +93,22 @@ async function handleTextMessage(event) {
         await handlePaymentReport(userId, userMessage, replyToken)
       } else {
         // 發送一般回覆
-        await safeReplyMessage(lineClientInstance, replyToken, '您好！如果您已完成付款，請回覆「姓名」與「帳號後五碼」給我們確認。')
+        await safeReplyMessage(lineClientInstance, replyToken, `💳 付款回報格式
+
+請按照以下格式提供您的付款資訊：
+
+姓名：[您的姓名]
+後五碼：[帳號後五碼]
+金額：[匯款金額]
+備註：[其他說明，選填]
+
+例如：
+姓名：張小明
+後五碼：12345
+金額：3000
+備註：已匯款完成
+
+我們會立即確認您的付款！`)
       }
     } else {
       // 新用戶，引導報名流程
@@ -253,11 +268,25 @@ async function handlePaymentReport(userId, message, replyToken) {
     }
   })
 
-  await safeReplyMessage(lineClientInstance, replyToken, `✅ 付款資訊已收到！
+  // 構建確認訊息
+  let confirmMessage = `✅ 付款資訊已收到！\n\n`
+  
+  if (paymentInfo.name) {
+    confirmMessage += `姓名：${paymentInfo.name}\n`
+  }
+  if (paymentInfo.reference) {
+    confirmMessage += `後五碼：${paymentInfo.reference}\n`
+  }
+  if (paymentInfo.amount) {
+    confirmMessage += `金額：${paymentInfo.amount}\n`
+  }
+  if (paymentInfo.notes && paymentInfo.notes !== message) {
+    confirmMessage += `備註：${paymentInfo.notes}\n`
+  }
+  
+  confirmMessage += `\n我們會盡快確認您的付款，並在 24 小時內與您聯繫安排課程。\n\n感謝您的報名，祝您學習愉快！🎵`
 
-我們會盡快確認您的付款，並在 24 小時內與您聯繫安排課程。
-
-感謝您的報名，祝您學習愉快！🎵`)
+  await safeReplyMessage(lineClientInstance, replyToken, confirmMessage)
 }
 
 // 解析付款回報訊息的函數
@@ -269,16 +298,40 @@ function parsePaymentMessage(message) {
     notes: message
   }
   
-  // 提取後五碼
-  const referenceMatch = message.match(/(\d{5})/)
-  if (referenceMatch) {
-    result.reference = referenceMatch[1]
+  // 提取姓名（支援中文和英文冒號）
+  const nameMatch = message.match(/姓名[：:]\s*([^\n\r後五碼金額備註]+)/)
+  if (nameMatch) {
+    result.name = nameMatch[1].trim()
   }
   
-  // 提取金額
-  const amountMatch = message.match(/(\d{1,3}(?:,\d{3})*)/)
+  // 提取後五碼
+  const referenceMatch = message.match(/後五碼[：:]\s*(\d{5})/)
+  if (referenceMatch) {
+    result.reference = referenceMatch[1]
+  } else {
+    // 備用：直接找5位數字
+    const fallbackMatch = message.match(/(\d{5})/)
+    if (fallbackMatch) {
+      result.reference = fallbackMatch[1]
+    }
+  }
+  
+  // 提取金額（支援千分位逗號）
+  const amountMatch = message.match(/金額[：:]\s*(\d{1,3}(?:,\d{3})*)/)
   if (amountMatch) {
     result.amount = amountMatch[1]
+  } else {
+    // 備用：找數字（避免提取到後五碼）
+    const fallbackAmountMatch = message.match(/(\d{3,}(?:,\d{3})*)/)
+    if (fallbackAmountMatch) {
+      result.amount = fallbackAmountMatch[1]
+    }
+  }
+  
+  // 提取備註
+  const notesMatch = message.match(/備註[：:]\s*([^\n\r]+)/)
+  if (notesMatch) {
+    result.notes = notesMatch[1].trim()
   }
   
   return result
