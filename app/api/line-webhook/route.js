@@ -126,8 +126,8 @@ async function handleNewUser(userId, message, replyToken) {
 我們會立即為您處理報名並發送付款資訊！`)
   } else if ((message.includes('姓名：') || message.includes('姓名:')) && (message.includes('課程：') || message.includes('課程:'))) {
     // 解析報名資訊，支援中文和英文冒號
-    const nameMatch = message.match(/姓名[：:]([^\n]+)/)
-    const courseMatch = message.match(/課程[：:]([^\n]+)/)
+    const nameMatch = message.match(/姓名[：:]\s*([^\s課程]+)/)
+    const courseMatch = message.match(/課程[：:]\s*([^\s]+)/)
     
     if (nameMatch && courseMatch) {
       const name = nameMatch[1].trim()
