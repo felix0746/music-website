@@ -467,31 +467,13 @@ async function handleReEnrollment(userId, message, replyToken) {
 async function handleCancellation(userId, message, replyToken) {
   const lineClientInstance = getLineClient()
   
-  // 檢查是否包含取消原因
-  if (message.includes('取消') || message.includes('退課') || message.includes('退費')) {
-    // 引導用戶提供取消資訊
-    await safeReplyMessage(lineClientInstance, replyToken, `❌ 取消課程申請
-
-我們很遺憾聽到您想要取消課程。為了確保安全，請提供以下資訊：
-
-姓名：[您的姓名]
-課程：[課程名稱]
-取消原因：[請簡述取消原因]
-退費需求：[是/否]
-
-例如：
-姓名：張小明
-課程：歌唱課
-取消原因：工作時間變更，無法配合上課時間
-退費需求：是
-
-我們會根據您的付款狀況和取消時間來處理退費事宜。`)
-  } else if (message.includes('姓名：') && message.includes('課程：') && message.includes('取消原因：') && message.includes('退費需求：')) {
+  // 檢查是否包含完整的取消資訊
+  if (message.includes('姓名：') && message.includes('課程：') && message.includes('取消原因：') && message.includes('退費需求：')) {
     // 解析取消資訊
-    const nameMatch = message.match(/姓名[：:]([^\n課程]+)/)
-    const courseMatch = message.match(/課程[：:]([^\n取消]+)/)
-    const reasonMatch = message.match(/取消原因[：:]([^\n退費]+)/)
-    const refundMatch = message.match(/退費需求[：:]([^\n]+)/)
+    const nameMatch = message.match(/姓名[：:]\s*([^\n課程]+)/)
+    const courseMatch = message.match(/課程[：:]\s*([^\n取消]+)/)
+    const reasonMatch = message.match(/取消原因[：:]\s*([^\n退費]+)/)
+    const refundMatch = message.match(/退費需求[：:]\s*([^\n]+)/)
     
     if (nameMatch && courseMatch && reasonMatch && refundMatch) {
       const name = nameMatch[1].trim()
@@ -609,6 +591,24 @@ async function handleCancellation(userId, message, replyToken) {
 取消原因：工作時間變更，無法配合上課時間
 退費需求：是`)
     }
+  } else if (message.includes('取消') || message.includes('退課') || message.includes('退費')) {
+    // 引導用戶提供取消資訊
+    await safeReplyMessage(lineClientInstance, replyToken, `❌ 取消課程申請
+
+我們很遺憾聽到您想要取消課程。為了確保安全，請提供以下資訊：
+
+姓名：[您的姓名]
+課程：[課程名稱]
+取消原因：[請簡述取消原因]
+退費需求：[是/否]
+
+例如：
+姓名：張小明
+課程：歌唱課
+取消原因：工作時間變更，無法配合上課時間
+退費需求：是
+
+我們會根據您的付款狀況和取消時間來處理退費事宜。`)
   } else {
     // 一般取消引導
     await safeReplyMessage(lineClientInstance, replyToken, `❌ 取消課程申請
