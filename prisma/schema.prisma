@@ -1,0 +1,30 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- 我們的使用者簽到簿 ---
+model User {
+  id        Int      @id @default(autoincrement())
+  lineUserId String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  welcomeMessageSent Boolean  @default(false)
+
+  // vvv 新增的欄位 vvv
+  paymentStatus PaymentStatus @default(UNPAID)
+}
+
+// vvv 新增的 Enum vvv
+enum PaymentStatus {
+  UNPAID // 尚未付款
+  PAID   // 已付款
+}

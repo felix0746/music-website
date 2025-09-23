@@ -5,6 +5,7 @@ import InstructorSection from '../components/InstructorSection';
 import TestimonialsSection from '../components/TestimonialsSection';
 import FaqSection from '../components/FaqSection';
 import EnrollmentSection from '../components/EnrollmentSection';
+import LineFloatingButton from '../components/LineFloatingButton';
 
 export default function Home() {
   return (
@@ -21,6 +22,7 @@ export default function Home() {
           <p>&copy; {new Date().getFullYear()} [你的名字或工作室名稱]. All Rights Reserved.</p>
         </div>
       </footer>
+      <LineFloatingButton />
     </main>
   );
 }
