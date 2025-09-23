@@ -72,6 +72,29 @@ export default function AdminPage() {
     return courseNames[courseCode] || courseCode || '未指定'
   }
 
+  // 獲取課程應付金額的函式
+  const getCoursePrice = (courseCode) => {
+    const coursePrices = {
+      'singing': 'NT$ 3,000',
+      'guitar': 'NT$ 4,000',
+      'songwriting': 'NT$ 5,000',
+      'band-workshop': 'NT$ 6,000',
+      'spring-composition-group': 'NT$ 6,000'
+    }
+    return coursePrices[courseCode] || 'NT$ 3,000'
+  }
+
+  // 檢查付款金額是否正確的函式
+  const isPaymentAmountCorrect = (courseCode, paidAmount) => {
+    if (!paidAmount) return null
+    
+    const expectedPrice = getCoursePrice(courseCode)
+    const expectedNumber = parseInt(expectedPrice.replace(/[^\d]/g, ''))
+    const paidNumber = parseInt(paidAmount.replace(/[^\d]/g, ''))
+    
+    return paidNumber === expectedNumber
+  }
+
   return (
     <div className="container mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-8">
@@ -116,11 +139,24 @@ export default function AdminPage() {
                       <div className="text-xs space-y-1">
                         <div className="font-medium text-green-700">已付款</div>
                         <div className="text-blue-600 font-medium">課程: {getCourseName(student.course)}</div>
+                        <div className="text-purple-600 font-medium">應付: {getCoursePrice(student.course)}</div>
                         {student.paymentReference && (
                           <div className="text-slate-600">後五碼: {student.paymentReference}</div>
                         )}
                         {student.paymentAmount && (
-                          <div className="text-slate-600">金額: {student.paymentAmount}</div>
+                          <div className={`font-medium ${
+                            isPaymentAmountCorrect(student.course, student.paymentAmount) 
+                              ? 'text-green-600' 
+                              : 'text-red-600'
+                          }`}>
+                            實付: {student.paymentAmount}
+                            {isPaymentAmountCorrect(student.course, student.paymentAmount) === false && (
+                              <span className="ml-1 text-red-500">❌</span>
+                            )}
+                            {isPaymentAmountCorrect(student.course, student.paymentAmount) === true && (
+                              <span className="ml-1 text-green-500">✅</span>
+                            )}
+                          </div>
                         )}
                         {student.paymentDate && (
                           <div className="text-slate-500">時間: {formatDateTime(student.paymentDate)}</div>
@@ -135,6 +171,7 @@ export default function AdminPage() {
                       <div className="text-xs">
                         <span className="text-slate-400">-</span>
                         <div className="text-blue-600 font-medium mt-1">課程: {getCourseName(student.course)}</div>
+                        <div className="text-purple-600 font-medium">應付: {getCoursePrice(student.course)}</div>
                       </div>
                     )}
                   </td>
