@@ -50,36 +50,36 @@ export default function TestimonialsSection() {
           <motion.div 
             className="flex gap-4 sm:gap-6 cursor-grab active:cursor-grabbing"
             drag="x"
-            dragConstraints={{ left: -((testimonials.length - 1) * 300), right: 0 }}
+            dragConstraints={{ left: -((testimonials.length - 1) * 320), right: 0 }}
             dragElastic={0.1}
             whileDrag={{ cursor: 'grabbing' }}
-            style={{ width: `${testimonials.length * 300}px` }}
+            style={{ width: `${testimonials.length * 320}px` }}
           >
             {testimonials.map((testimonial, index) => (
               <FadeIn key={testimonial.id} delay={index * 0.1}>
-                <div className="bg-slate-50 rounded-lg p-6 sm:p-6 shadow-sm flex-shrink-0 w-72 sm:w-72 h-56 sm:h-52 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center mb-3 sm:mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <svg
-                      key={i}
-                      className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
+                <div className="bg-white rounded-xl p-6 shadow-lg flex-shrink-0 w-80 sm:w-72 h-64 sm:h-52 flex flex-col justify-between border border-gray-100">
+                  <div>
+                    <div className="flex items-center mb-4">
+                      {[...Array(testimonial.rating)].map((_, i) => (
+                        <svg
+                          key={i}
+                          className="w-5 h-5 sm:w-5 sm:h-5 text-yellow-400"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <p className="text-base text-slate-700 mb-4 leading-relaxed line-clamp-4">
+                      "{testimonial.content}"
+                    </p>
+                  </div>
+                  <div className="border-t border-gray-200 pt-4 mt-auto">
+                    <p className="font-semibold text-slate-900 text-base">{testimonial.name}</p>
+                    <p className="text-sm text-slate-600">{testimonial.course}</p>
+                  </div>
                 </div>
-                <p className="text-base sm:text-base text-slate-700 mb-4 sm:mb-4 leading-relaxed line-clamp-4">
-                  "{testimonial.content}"
-                </p>
-              </div>
-              <div className="border-t border-slate-200 pt-3 sm:pt-4 mt-auto">
-                <p className="font-semibold text-slate-900 text-base sm:text-base">{testimonial.name}</p>
-                <p className="text-sm sm:text-sm text-slate-600">{testimonial.course}</p>
-              </div>
-            </div>
             </FadeIn>
           ))}
           </motion.div>
@@ -89,7 +89,7 @@ export default function TestimonialsSection() {
         <div className="hidden lg:grid grid-cols-3 gap-6 lg:gap-8 ml-20">
           {testimonials.map((testimonial, index) => (
             <FadeIn key={testimonial.id} delay={index * 0.1}>
-              <div className="bg-slate-50 rounded-lg p-6 shadow-sm h-64 flex flex-col justify-between">
+              <div className="bg-white rounded-xl p-6 shadow-lg h-64 flex flex-col justify-between border border-gray-100">
                 <div>
                   <div className="flex items-center mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
