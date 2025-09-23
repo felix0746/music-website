@@ -88,27 +88,26 @@ async function handleTextMessage(event) {
     })
 
     if (existingUser) {
-      // 如果已經報名，處理付款回報
+      // 如果已經報名，檢查用戶意圖
       if (userMessage.includes('付款') || userMessage.includes('匯款') || userMessage.includes('後五碼')) {
         await handlePaymentReport(userId, userMessage, replyToken)
+      } else if (userMessage.includes('報名') || userMessage.includes('新課程') || userMessage.includes('下一季')) {
+        // 用戶想要重新報名
+        await handleReEnrollment(userId, userMessage, replyToken)
       } else {
-        // 發送一般回覆
-        await safeReplyMessage(lineClientInstance, replyToken, `💳 付款回報格式
+        // 發送一般回覆，提供多個選項
+        await safeReplyMessage(lineClientInstance, replyToken, `👋 歡迎回來！
 
-請按照以下格式提供您的付款資訊：
+您目前已經報名過課程，請選擇您需要的服務：
 
-姓名：[您的姓名]
-後五碼：[帳號後五碼]
-金額：[匯款金額]
-備註：[其他說明，選填]
+💳 付款回報
+如果您已完成付款，請回覆「付款」開始回報流程
 
-例如：
-姓名：張小明
-後五碼：12345
-金額：3000
-備註：已匯款完成
+📚 重新報名
+如果您想報名新一季的課程，請回覆「報名」開始新的報名流程
 
-我們會立即確認您的付款！`)
+❓ 其他問題
+如有任何疑問，請直接告訴我們！`)
       }
     } else {
       // 新用戶，引導報名流程
@@ -335,4 +334,125 @@ function parsePaymentMessage(message) {
   }
   
   return result
+}
+
+// 處理重新報名的函數
+async function handleReEnrollment(userId, message, replyToken) {
+  const lineClientInstance = getLineClient()
+  
+  // 檢查是否包含報名資訊
+  if (message.includes('報名') || message.includes('新課程') || message.includes('下一季')) {
+    // 引導用戶填寫新的報名資訊
+    await safeReplyMessage(lineClientInstance, replyToken, `🎵 歡迎報名新一季的音樂課程！
+
+請按照以下格式提供您的資訊：
+
+姓名：[您的姓名]
+課程：[歌唱課/吉他課/創作課/春曲創作團班]
+
+例如：
+姓名：張小明
+課程：歌唱課
+
+我們會為您處理新一季的報名並發送付款資訊！`)
+  } else if ((message.includes('姓名：') || message.includes('姓名:')) && (message.includes('課程：') || message.includes('課程:'))) {
+    // 解析報名資訊，支援中文和英文冒號
+    const nameMatch = message.match(/姓名[：:]([^\n]+)/)
+    const courseMatch = message.match(/課程[：:]([^\n]+)/)
+    
+    if (nameMatch && courseMatch) {
+      const name = nameMatch[1].trim()
+      const course = courseMatch[1].trim()
+      
+      // 處理重新報名邏輯
+      try {
+        const prismaInstance = getPrisma()
+        const lineClientInstance = getLineClient()
+
+        // 課程名稱對應
+        const courseNames = {
+          'singing': '歌唱課',
+          'guitar': '吉他課',
+          'songwriting': '創作課',
+          'band-workshop': '春曲創作團班'
+        }
+
+        const courseName = courseNames[course.toLowerCase()] || course
+
+        // 更新用戶記錄（重新報名）
+        const updatedUser = await prismaInstance.user.update({
+          where: { lineUserId: userId },
+          data: {
+            name: name,
+            course: course.toLowerCase(),
+            enrollmentDate: new Date(),
+            paymentStatus: 'UNPAID', // 重置付款狀態
+            paymentReference: null,
+            paymentAmount: null,
+            paymentMethod: null,
+            paymentDate: null,
+            paymentNotes: null
+          }
+        })
+
+        // 課程價格設定
+        const coursePrices = {
+          '歌唱課': 'NT$ 3,000',
+          '吉他課': 'NT$ 4,000', 
+          '創作課': 'NT$ 5,000',
+          '春曲創作團班': 'NT$ 6,000'
+        }
+
+        const coursePrice = coursePrices[courseName] || 'NT$ 3,000'
+
+        // 發送付款資訊給學員
+        const paymentMessage = {
+          type: 'text',
+          text: `🎵 感謝 ${name} 重新報名「${courseName}」！
+
+以下是您的付款資訊：
+
+🏦 銀行：台灣銀行 (004)
+💳 帳號：1234567890123456
+👤 戶名：張文紹
+💰 金額：${coursePrice}
+
+📝 重要提醒：
+• 請於 3 天內完成付款
+• 付款完成後，請回覆「姓名」與「帳號後五碼」
+• 我們會在確認付款後 24 小時內與您聯繫
+
+如有任何問題，請隨時與我們聯繫！
+祝您學習愉快！😊`
+        }
+
+        await lineClientInstance.pushMessage(userId, paymentMessage)
+
+        await safeReplyMessage(lineClientInstance, replyToken, `✅ 重新報名成功！付款資訊已發送給您，請查看上方訊息。`)
+
+        await prismaInstance.$disconnect()
+        
+      } catch (error) {
+        console.error('重新報名處理錯誤:', error)
+        const lineClientInstance = getLineClient()
+        await safeReplyMessage(lineClientInstance, replyToken, `❌ 重新報名失敗：${error.message}`)
+      }
+    } else {
+      await safeReplyMessage(lineClientInstance, replyToken, `請按照正確格式提供資訊：
+
+姓名：[您的姓名]
+課程：[歌唱課/吉他課/創作課/春曲創作團班]`)
+    }
+  } else {
+    // 一般重新報名引導
+    await safeReplyMessage(lineClientInstance, replyToken, `🎵 歡迎報名新一季的音樂課程！
+
+我們提供以下課程：
+• 歌唱課 - 學習如何愛上自己的歌聲
+• 吉他課 - 從基礎到進階，養成寫作好習慣
+• 創作課 - 探索音樂創作的奧秘
+• 春曲創作團班 - 與同好交流，一起把創作帶上舞台
+
+如需重新報名，請回覆「報名」開始流程！`)
+  }
 }
