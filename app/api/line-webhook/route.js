@@ -109,22 +109,8 @@ async function handleTextMessage(event) {
 async function handleNewUser(userId, message, replyToken) {
   const lineClientInstance = getLineClient()
   
-  // 檢查是否包含報名資訊
-  if (message.includes('報名') || message.includes('課程')) {
-    // 引導用戶填寫報名資訊
-    await safeReplyMessage(lineClientInstance, replyToken, `🎵 歡迎報名我們的音樂課程！
-
-請按照以下格式提供您的資訊：
-
-姓名：[您的姓名]
-課程：[歌唱課/吉他課/創作課/春曲創作團班]
-
-例如：
-姓名：張小明
-課程：歌唱課
-
-我們會立即為您處理報名並發送付款資訊！`)
-  } else if ((message.includes('姓名：') || message.includes('姓名:')) && (message.includes('課程：') || message.includes('課程:'))) {
+  // 先檢查是否包含完整的報名資訊格式
+  if ((message.includes('姓名：') || message.includes('姓名:')) && (message.includes('課程：') || message.includes('課程:'))) {
     // 解析報名資訊，支援中文和英文冒號
     const nameMatch = message.match(/姓名[：:]\s*([^\s課程]+)/)
     const courseMatch = message.match(/課程[：:]\s*([^\s]+)/)
@@ -219,6 +205,20 @@ async function handleNewUser(userId, message, replyToken) {
 姓名：[您的姓名]
 課程：[歌唱課/吉他課/創作課/春曲創作團班]`)
     }
+  } else if (message.includes('報名') || message.includes('課程')) {
+    // 引導用戶填寫報名資訊
+    await safeReplyMessage(lineClientInstance, replyToken, `🎵 歡迎報名我們的音樂課程！
+
+請按照以下格式提供您的資訊：
+
+姓名：[您的姓名]
+課程：[歌唱課/吉他課/創作課/春曲創作團班]
+
+例如：
+姓名：張小明
+課程：歌唱課
+
+我們會立即為您處理報名並發送付款資訊！`)
   } else {
     // 一般歡迎訊息
     await safeReplyMessage(lineClientInstance, replyToken, `🎵 歡迎來到 MyMusic 音樂課程！
