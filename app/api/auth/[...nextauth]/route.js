@@ -45,30 +45,22 @@ const { handlers, auth, signIn, signOut } = NextAuth({
             where: { lineUserId: lineUserId },
           });
           
-          // 判斷是否為新用戶
+          // 如果用戶不存在，創建基本記錄（但不發送付款資訊）
           if (!existingUser) {
-            console.log(`新用戶報名: ${userName}。準備發送歡迎訊息...`);
+            console.log(`新用戶登入: ${userName}。創建基本記錄...`);
 
-            // 建立並發送歡迎訊息
-            const message = {
-              type: 'text',
-              text: `嗨 ${userName}！👋\n\n感謝您首次報名我們的音樂課程！以下是課程的付款資訊：\n\n銀行：[您的銀行名稱] (XXX)\n帳號：[您的銀行帳號]\n戶名：[您的戶名]\n\n完成匯款後，請直接在此聊天室回覆您的「姓名」與「帳號後五碼」，我們會盡快為您確認！😊`,
-            };
-            await lineClient.pushMessage(lineUserId, message);
-            
-            // 將新用戶資料寫入資料庫，並標記為已發送
             await prisma.user.create({
               data: {
                 lineUserId: lineUserId,
                 name: userName,
-                welcomeMessageSent: true,
+                welcomeMessageSent: false, // 不自動發送歡迎訊息
+                isVerified: false, // 需要透過 webhook 驗證
               },
             });
 
-            console.log(`已成功發送歡迎訊息並將 ${userName} 存入資料庫。`);
-
+            console.log(`已將 ${userName} 的基本記錄存入資料庫。`);
           } else {
-            console.log(`老朋友回來了: ${userName}。跳過歡迎訊息。`);
+            console.log(`老朋友回來了: ${userName}。`);
           }
         } catch (error) {
           console.error("處理 signIn 事件時發生錯誤:", error);

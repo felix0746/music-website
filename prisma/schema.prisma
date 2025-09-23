@@ -13,14 +13,21 @@ datasource db {
 // --- 我們的使用者簽到簿 ---
 model User {
   id        Int      @id @default(autoincrement())
-  lineUserId String   @unique
+  lineUserId String?  @unique
   name      String?
+  email     String?
+  course    String?
   createdAt DateTime @default(now())
 
   welcomeMessageSent Boolean  @default(false)
 
   // vvv 新增的欄位 vvv
   paymentStatus PaymentStatus @default(UNPAID)
+  
+  // vvv 報名驗證系統 vvv
+  enrollmentCode String? @unique  // 報名碼
+  isVerified     Boolean @default(false)  // 是否已驗證
+  enrollmentDate DateTime?  // 報名日期
 }
 
 // vvv 新增的 Enum vvv
