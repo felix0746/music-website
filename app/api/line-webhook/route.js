@@ -260,36 +260,88 @@ async function handlePaymentReport(userId, message, replyToken) {
   // 解析付款回報資訊
   const paymentInfo = parsePaymentMessage(message)
   
+  // 獲取用戶資訊
+  const user = await prismaInstance.user.findUnique({
+    where: { lineUserId: userId }
+  })
+  
+  if (!user) {
+    await safeReplyMessage(lineClientInstance, replyToken, '❌ 找不到您的報名記錄，請聯繫客服。')
+    return
+  }
+  
+  // 驗證付款金額
+  const expectedPrice = getCoursePrice(user.course)
+  const expectedNumber = parseInt(expectedPrice.replace(/[^\d]/g, ''))
+  const paidNumber = paymentInfo.amount ? parseInt(paymentInfo.amount.replace(/[^\d]/g, '')) : 0
+  
+  let enrollmentStatus = 'ACTIVE'
+  let paymentStatus = 'PAID'
+  
+  // 檢查金額是否正確
+  if (paidNumber !== expectedNumber) {
+    enrollmentStatus = 'CANCELLED' // 金額不符，標記為取消
+    paymentStatus = 'UNPAID' // 付款狀態改為未付款
+  }
+  
   // 更新用戶付款狀態和詳細資訊
   await prismaInstance.user.update({
     where: { lineUserId: userId },
     data: { 
-      paymentStatus: 'PAID',
+      paymentStatus: paymentStatus,
+      enrollmentStatus: enrollmentStatus,
       paymentReference: paymentInfo.reference,
       paymentAmount: paymentInfo.amount,
       paymentMethod: paymentInfo.method,
       paymentDate: new Date(),
-      paymentNotes: paymentInfo.notes
+      paymentNotes: paymentInfo.notes,
+      cancellationDate: enrollmentStatus === 'CANCELLED' ? new Date() : null,
+      cancellationReason: enrollmentStatus === 'CANCELLED' ? '付款金額不符' : null
     }
   })
 
   // 構建確認訊息
-  let confirmMessage = `✅ 付款資訊已收到！\n\n`
+  let confirmMessage = ''
   
-  if (paymentInfo.name) {
-    confirmMessage += `姓名：${paymentInfo.name}\n`
+  if (enrollmentStatus === 'CANCELLED') {
+    // 金額不符的情況
+    confirmMessage = `❌ 付款金額不符！\n\n`
+    confirmMessage += `您的付款資訊：\n`
+    if (paymentInfo.name) {
+      confirmMessage += `姓名：${paymentInfo.name}\n`
+    }
+    if (paymentInfo.reference) {
+      confirmMessage += `後五碼：${paymentInfo.reference}\n`
+    }
+    if (paymentInfo.amount) {
+      confirmMessage += `金額：${paymentInfo.amount}\n`
+    }
+    confirmMessage += `\n課程資訊：\n`
+    confirmMessage += `課程：${getCourseName(user.course)}\n`
+    confirmMessage += `應付金額：${expectedPrice}\n\n`
+    confirmMessage += `⚠️ 由於付款金額不符，您的報名已被取消。\n`
+    confirmMessage += `請重新匯款正確金額後再次回報付款資訊。\n\n`
+    confirmMessage += `如有疑問，請聯繫客服。`
+  } else {
+    // 金額正確的情況
+    confirmMessage = `✅ 付款資訊已收到！\n\n`
+    if (paymentInfo.name) {
+      confirmMessage += `姓名：${paymentInfo.name}\n`
+    }
+    if (paymentInfo.reference) {
+      confirmMessage += `後五碼：${paymentInfo.reference}\n`
+    }
+    if (paymentInfo.amount) {
+      confirmMessage += `金額：${paymentInfo.amount}\n`
+    }
+    if (paymentInfo.notes && paymentInfo.notes !== message) {
+      confirmMessage += `備註：${paymentInfo.notes}\n`
+    }
+    confirmMessage += `\n課程資訊：\n`
+    confirmMessage += `課程：${getCourseName(user.course)}\n`
+    confirmMessage += `應付金額：${expectedPrice}\n\n`
+    confirmMessage += `我們會盡快確認您的付款，並在 24 小時內與您聯繫安排課程。\n\n感謝您的報名，祝您學習愉快！🎵`
   }
-  if (paymentInfo.reference) {
-    confirmMessage += `後五碼：${paymentInfo.reference}\n`
-  }
-  if (paymentInfo.amount) {
-    confirmMessage += `金額：${paymentInfo.amount}\n`
-  }
-  if (paymentInfo.notes && paymentInfo.notes !== message) {
-    confirmMessage += `備註：${paymentInfo.notes}\n`
-  }
-  
-  confirmMessage += `\n我們會盡快確認您的付款，並在 24 小時內與您聯繫安排課程。\n\n感謝您的報名，祝您學習愉快！🎵`
 
   await safeReplyMessage(lineClientInstance, replyToken, confirmMessage)
 }
@@ -640,4 +692,16 @@ function getCourseName(courseCode) {
     'spring-composition-group': '春曲創作團班'
   }
   return courseNames[courseCode] || courseCode || '未指定'
+}
+
+// 獲取課程價格的函式
+function getCoursePrice(courseCode) {
+  const coursePrices = {
+    'singing': 'NT$ 3,000',
+    'guitar': 'NT$ 4,000',
+    'songwriting': 'NT$ 5,000',
+    'band-workshop': 'NT$ 6,000',
+    'spring-composition-group': 'NT$ 6,000'
+  }
+  return coursePrices[courseCode] || 'NT$ 3,000'
 }

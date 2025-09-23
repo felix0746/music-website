@@ -55,6 +55,54 @@ export default function AdminPage() {
     }
   }
 
+  // 處理退款的函式
+  const handleRefund = async (studentId, refundStatus) => {
+    const student = students.find(s => s.id === studentId)
+    if (!student) return
+
+    const statusText = refundStatus === 'PENDING' ? '處理中' : '已完成'
+    const refundAmount = student.paymentAmount || getCoursePrice(student.course)
+    
+    if (!confirm(`您確定要將 ${student.name} 的退款狀態標記為「${statusText}」嗎？\n\n退款金額：${refundAmount}`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/students/${studentId}/refund`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          refundStatus: refundStatus,
+          refundAmount: refundAmount,
+          refundDate: refundStatus === 'COMPLETED' ? new Date().toISOString() : null
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('更新失敗')
+      }
+
+      // 即時更新畫面上該學生的狀態
+      setStudents(students.map(s => 
+        s.id === studentId ? { 
+          ...s, 
+          refundStatus: refundStatus,
+          refundAmount: refundAmount,
+          refundDate: refundStatus === 'COMPLETED' ? new Date().toISOString() : s.refundDate
+        } : s
+      ))
+      
+      if (refundStatus === 'COMPLETED') {
+        alert(`退款完成！已通知 ${student.name} 退款金額：${refundAmount}`)
+      } else {
+        alert('退款狀態已更新為處理中！')
+      }
+    } catch (error) {
+      console.error("更新退款狀態失敗:", error)
+      alert('更新退款狀態時發生錯誤。')
+    }
+  }
+
   // 格式化日期時間的函式
   const formatDateTime = (isoString) => {
     return new Date(isoString).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
@@ -110,6 +158,7 @@ export default function AdminPage() {
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">註冊日期</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">報名狀態</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">付款狀態</th>
+                <th className="px-6 py-3 text-sm font-semibold text-slate-900">退款狀態</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">付款資訊</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">操作</th>
               </tr>
@@ -147,6 +196,25 @@ export default function AdminPage() {
                     ) : (
                       <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
                         尚未付款
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    {student.refundStatus === 'NONE' ? (
+                      <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-600/10">
+                        無退款
+                      </span>
+                    ) : student.refundStatus === 'PENDING' ? (
+                      <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700 ring-1 ring-inset ring-yellow-600/20">
+                        處理中
+                      </span>
+                    ) : student.refundStatus === 'COMPLETED' ? (
+                      <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                        已完成
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
+                        已拒絕
                       </span>
                     )}
                   </td>
@@ -208,6 +276,24 @@ export default function AdminPage() {
                           >
                             標記為未付款
                           </button>
+                        )
+                      ) : student.enrollmentStatus === 'CANCELLED' ? (
+                        student.refundStatus === 'NONE' ? (
+                          <button
+                            onClick={() => handleRefund(student.id, 'PENDING')}
+                            className="rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                          >
+                            處理退款
+                          </button>
+                        ) : student.refundStatus === 'PENDING' ? (
+                          <button
+                            onClick={() => handleRefund(student.id, 'COMPLETED')}
+                            className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                          >
+                            完成退款
+                          </button>
+                        ) : (
+                          <span className="text-xs text-green-600 font-medium">已退款</span>
                         )
                       ) : (
                         <span className="text-xs text-gray-400">-</span>
