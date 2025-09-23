@@ -240,16 +240,17 @@ async function handlePaymentReport(userId, message, replyToken) {
   // 解析付款回報資訊
   const paymentInfo = parsePaymentMessage(message)
   
-  // 更新用戶付款狀態和詳細資訊
+  // 更新用戶付款狀態（暫時只更新基本狀態）
   await prismaInstance.user.update({
     where: { lineUserId: userId },
     data: { 
-      paymentStatus: 'PAID',
-      paymentReference: paymentInfo.reference,
-      paymentAmount: paymentInfo.amount,
-      paymentMethod: paymentInfo.method,
-      paymentDate: new Date(),
-      paymentNotes: paymentInfo.notes
+      paymentStatus: 'PAID'
+      // 暫時註解掉新欄位，等資料庫更新後再啟用
+      // paymentReference: paymentInfo.reference,
+      // paymentAmount: paymentInfo.amount,
+      // paymentMethod: paymentInfo.method,
+      // paymentDate: new Date(),
+      // paymentNotes: paymentInfo.notes
     }
   })
 

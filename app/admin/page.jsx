@@ -98,9 +98,11 @@ export default function AdminPage() {
                   <td className="px-6 py-4 text-sm text-slate-600">
                     {student.paymentStatus === 'PAID' ? (
                       <div className="text-xs">
-                        {student.paymentReference && <div>後五碼: {student.paymentReference}</div>}
+                        <div>已付款</div>
+                        {/* 暫時隱藏詳細資訊，等資料庫更新後再啟用 */}
+                        {/* {student.paymentReference && <div>後五碼: {student.paymentReference}</div>}
                         {student.paymentAmount && <div>金額: {student.paymentAmount}</div>}
-                        {student.paymentDate && <div>付款時間: {formatDateTime(student.paymentDate)}</div>}
+                        {student.paymentDate && <div>付款時間: {formatDateTime(student.paymentDate)}</div>} */}
                       </div>
                     ) : (
                       <span className="text-slate-400">-</span>
