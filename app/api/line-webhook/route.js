@@ -469,25 +469,33 @@ async function handleCancellation(userId, message, replyToken) {
   
   // 檢查是否包含取消原因
   if (message.includes('取消') || message.includes('退課') || message.includes('退費')) {
-    // 引導用戶提供取消原因
+    // 引導用戶提供取消資訊
     await safeReplyMessage(lineClientInstance, replyToken, `❌ 取消課程申請
 
-我們很遺憾聽到您想要取消課程。為了更好地為您處理，請提供以下資訊：
+我們很遺憾聽到您想要取消課程。為了確保安全，請提供以下資訊：
 
+姓名：[您的姓名]
+課程：[課程名稱]
 取消原因：[請簡述取消原因]
 退費需求：[是/否]
 
 例如：
+姓名：張小明
+課程：歌唱課
 取消原因：工作時間變更，無法配合上課時間
 退費需求：是
 
 我們會根據您的付款狀況和取消時間來處理退費事宜。`)
-  } else if (message.includes('取消原因：') || message.includes('退費需求：')) {
+  } else if (message.includes('姓名：') && message.includes('課程：') && message.includes('取消原因：') && message.includes('退費需求：')) {
     // 解析取消資訊
+    const nameMatch = message.match(/姓名[：:]([^\n課程]+)/)
+    const courseMatch = message.match(/課程[：:]([^\n取消]+)/)
     const reasonMatch = message.match(/取消原因[：:]([^\n退費]+)/)
     const refundMatch = message.match(/退費需求[：:]([^\n]+)/)
     
-    if (reasonMatch && refundMatch) {
+    if (nameMatch && courseMatch && reasonMatch && refundMatch) {
+      const name = nameMatch[1].trim()
+      const course = courseMatch[1].trim()
       const reason = reasonMatch[1].trim()
       const refundRequest = refundMatch[1].trim()
       
@@ -508,6 +516,19 @@ async function handleCancellation(userId, message, replyToken) {
 
         if (user.enrollmentStatus === 'CANCELLED') {
           await safeReplyMessage(lineClientInstance, replyToken, '❌ 您的課程已經取消過了。')
+          return
+        }
+
+        // 驗證姓名和課程是否匹配
+        const courseName = getCourseName(user.course)
+        if (user.name !== name || courseName !== course) {
+          await safeReplyMessage(lineClientInstance, replyToken, `❌ 姓名或課程不匹配！
+
+您的報名記錄：
+• 姓名：${user.name}
+• 課程：${courseName}
+
+請確認資訊正確後重新提交取消申請。`)
           return
         }
 
@@ -577,19 +598,31 @@ async function handleCancellation(userId, message, replyToken) {
     } else {
       await safeReplyMessage(lineClientInstance, replyToken, `請按照正確格式提供資訊：
 
+姓名：[您的姓名]
+課程：[課程名稱]
 取消原因：[請簡述取消原因]
-退費需求：[是/否]`)
+退費需求：[是/否]
+
+例如：
+姓名：張小明
+課程：歌唱課
+取消原因：工作時間變更，無法配合上課時間
+退費需求：是`)
     }
   } else {
     // 一般取消引導
     await safeReplyMessage(lineClientInstance, replyToken, `❌ 取消課程申請
 
-我們很遺憾聽到您想要取消課程。為了更好地為您處理，請提供以下資訊：
+我們很遺憾聽到您想要取消課程。為了確保安全，請提供以下資訊：
 
+姓名：[您的姓名]
+課程：[課程名稱]
 取消原因：[請簡述取消原因]
 退費需求：[是/否]
 
 例如：
+姓名：張小明
+課程：歌唱課
 取消原因：工作時間變更，無法配合上課時間
 退費需求：是
 
