@@ -8,7 +8,7 @@ const lineClient = new Client({
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN
 });
 
-const authOptions = {
+const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     LineProvider({
       clientId: process.env.LINE_CLIENT_ID,
@@ -29,7 +29,7 @@ const authOptions = {
     },
   },
   events: {
-    async signIn({ user, account, profile }) {
+    async signIn({ account, profile }) {
       if (account.provider === 'line') {
         const lineUserId = profile.sub;
         const userName = profile.name;
@@ -76,8 +76,6 @@ const authOptions = {
       }
     }
   }
-}
+})
 
-const handler = NextAuth(authOptions)
-
-export { handler as GET, handler as POST }
+export const { GET, POST } = handlers
