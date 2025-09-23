@@ -52,6 +52,16 @@ export async function POST(request) {
       }
     })
 
+    // 課程價格設定
+    const coursePrices = {
+      '歌唱課': 'NT$ 3,000',
+      '吉他課': 'NT$ 4,000', 
+      '創作課': 'NT$ 5,000',
+      '春曲創作團班': 'NT$ 6,000'
+    }
+
+    const coursePrice = coursePrices[courseName] || 'NT$ 3,000'
+
     // 發送付款資訊給學員
     const paymentMessage = {
       type: 'text',
@@ -59,10 +69,10 @@ export async function POST(request) {
 
 以下是您的付款資訊：
 
-🏦 銀行：[您的銀行名稱] ([銀行代碼])
-💳 帳號：[您的銀行帳號]
-👤 戶名：[您的戶名]
-💰 金額：[課程金額]
+🏦 銀行：台灣銀行 (004)
+💳 帳號：1234567890123456
+👤 戶名：張文紹
+💰 金額：${coursePrice}
 
 📝 重要提醒：
 • 請於 3 天內完成付款
