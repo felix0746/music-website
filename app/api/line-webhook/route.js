@@ -1,10 +1,25 @@
 import { Client } from '@line/bot-sdk'
 import { PrismaClient } from '@prisma/client'
 
-const prisma = new PrismaClient()
-const lineClient = new Client({
-  channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN
-})
+let prisma
+let lineClient
+
+// 延遲初始化，避免 Vercel 冷啟動問題
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient()
+  }
+  return prisma
+}
+
+function getLineClient() {
+  if (!lineClient) {
+    lineClient = new Client({
+      channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN
+    })
+  }
+  return lineClient
+}
 
 export async function POST(request) {
   try {
@@ -31,7 +46,8 @@ export async function POST(request) {
     console.error('LINE Webhook 錯誤:', error)
     return Response.json({ error: 'Webhook 處理失敗' }, { status: 500 })
   } finally {
-    await prisma.$disconnect()
+    const prismaInstance = getPrisma()
+    await prismaInstance.$disconnect()
   }
 }
 
@@ -41,8 +57,11 @@ async function handleTextMessage(event) {
   const userMessage = message.text.trim()
 
   try {
+    const prismaInstance = getPrisma()
+    const lineClientInstance = getLineClient()
+    
     // 檢查用戶是否已經報名
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prismaInstance.user.findUnique({
       where: { lineUserId: userId }
     })
 
@@ -52,7 +71,7 @@ async function handleTextMessage(event) {
         await handlePaymentReport(userId, userMessage, replyToken)
       } else {
         // 發送一般回覆
-        await lineClient.replyMessage(replyToken, {
+        await lineClientInstance.replyMessage(replyToken, {
           type: 'text',
           text: '您好！如果您已完成付款，請回覆「姓名」與「帳號後五碼」給我們確認。'
         })
@@ -63,7 +82,8 @@ async function handleTextMessage(event) {
     }
   } catch (error) {
     console.error('處理訊息時發生錯誤:', error)
-    await lineClient.replyMessage(replyToken, {
+    const lineClientInstance = getLineClient()
+    await lineClientInstance.replyMessage(replyToken, {
       type: 'text',
       text: '抱歉，系統暫時無法處理您的訊息，請稍後再試。'
     })
@@ -71,10 +91,12 @@ async function handleTextMessage(event) {
 }
 
 async function handleNewUser(userId, message, replyToken) {
+  const lineClientInstance = getLineClient()
+  
   // 檢查是否包含報名資訊
   if (message.includes('報名') || message.includes('課程')) {
     // 引導用戶填寫報名資訊
-    await lineClient.replyMessage(replyToken, {
+    await lineClientInstance.replyMessage(replyToken, {
       type: 'text',
       text: `🎵 歡迎報名我們的音樂課程！
 
@@ -100,25 +122,20 @@ async function handleNewUser(userId, message, replyToken) {
       
       // 直接調用報名邏輯，避免 fetch 問題
       try {
-        const { PrismaClient } = await import('@prisma/client')
-        const { Client } = await import('@line/bot-sdk')
-        
-        const prisma = new PrismaClient()
-        const lineClient = new Client({
-          channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN
-        })
+        const prismaInstance = getPrisma()
+        const lineClientInstance = getLineClient()
 
         // 檢查是否已經報名過
-        const existingUser = await prisma.user.findUnique({
+        const existingUser = await prismaInstance.user.findUnique({
           where: { lineUserId: userId }
         })
 
         if (existingUser) {
-          await lineClient.replyMessage(replyToken, {
+          await lineClientInstance.replyMessage(replyToken, {
             type: 'text',
             text: '您已經報名過了！'
           })
-          await prisma.$disconnect()
+          await prismaInstance.$disconnect()
           return
         }
 
@@ -133,7 +150,7 @@ async function handleNewUser(userId, message, replyToken) {
         const courseName = courseNames[course.toLowerCase()] || course
 
         // 創建新用戶記錄
-        const newUser = await prisma.user.create({
+        const newUser = await prismaInstance.user.create({
           data: {
             lineUserId: userId,
             name: name,
@@ -175,24 +192,25 @@ async function handleNewUser(userId, message, replyToken) {
 祝您學習愉快！😊`
         }
 
-        await lineClient.pushMessage(userId, paymentMessage)
+        await lineClientInstance.pushMessage(userId, paymentMessage)
 
-        await lineClient.replyMessage(replyToken, {
+        await lineClientInstance.replyMessage(replyToken, {
           type: 'text',
           text: `✅ 報名成功！付款資訊已發送給您，請查看上方訊息。`
         })
 
-        await prisma.$disconnect()
+        await prismaInstance.$disconnect()
         
       } catch (error) {
         console.error('報名處理錯誤:', error)
-        await lineClient.replyMessage(replyToken, {
+        const lineClientInstance = getLineClient()
+        await lineClientInstance.replyMessage(replyToken, {
           type: 'text',
           text: `❌ 報名失敗：${error.message}`
         })
       }
     } else {
-      await lineClient.replyMessage(replyToken, {
+      await lineClientInstance.replyMessage(replyToken, {
         type: 'text',
         text: `請按照正確格式提供資訊：
 
@@ -202,7 +220,7 @@ async function handleNewUser(userId, message, replyToken) {
     }
   } else {
     // 一般歡迎訊息
-    await lineClient.replyMessage(replyToken, {
+    await lineClientInstance.replyMessage(replyToken, {
       type: 'text',
       text: `🎵 歡迎來到 MyMusic 音樂課程！
 
@@ -218,8 +236,11 @@ async function handleNewUser(userId, message, replyToken) {
 }
 
 async function handlePaymentReport(userId, message, replyToken) {
+  const prismaInstance = getPrisma()
+  const lineClientInstance = getLineClient()
+  
   // 更新用戶付款狀態
-  await prisma.user.update({
+  await prismaInstance.user.update({
     where: { lineUserId: userId },
     data: { 
       paymentStatus: 'PAID',
@@ -227,7 +248,7 @@ async function handlePaymentReport(userId, message, replyToken) {
     }
   })
 
-  await lineClient.replyMessage(replyToken, {
+  await lineClientInstance.replyMessage(replyToken, {
     type: 'text',
     text: `✅ 付款資訊已收到！
 
