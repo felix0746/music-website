@@ -21,36 +21,10 @@ export async function GET() {
     console.error('獲取學員資料時發生錯誤:', error)
     console.error('錯誤詳情:', error.message)
     
-    // 如果 Prisma 失敗，返回模擬資料作為後備
-    console.log('Prisma 失敗，返回模擬資料作為後備...')
-    const mockStudents = [
-      {
-        id: 1,
-        lineUserId: 'Ub5e44f18ad8c62f69e461e4c072e95af',
-        name: '測試學員A',
-        createdAt: new Date().toISOString(),
-        welcomeMessageSent: true,
-        paymentStatus: 'PAID'
-      },
-      {
-        id: 2,
-        lineUserId: 'U1234567890abcdef1234567890abcdef',
-        name: '測試學員B',
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-        welcomeMessageSent: false,
-        paymentStatus: 'UNPAID'
-      },
-      {
-        id: 3,
-        lineUserId: 'Uabcdef1234567890abcdef1234567890',
-        name: '測試學員C',
-        createdAt: new Date(Date.now() - 172800000).toISOString(),
-        welcomeMessageSent: true,
-        paymentStatus: 'UNPAID'
-      }
-    ]
-    
-    return Response.json(mockStudents)
+    return Response.json(
+      { error: '資料庫連接失敗', details: error.message },
+      { status: 500 }
+    )
   } finally {
     await prisma.$disconnect()
   }
