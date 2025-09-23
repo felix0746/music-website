@@ -98,28 +98,97 @@ async function handleNewUser(userId, message, replyToken) {
       const name = nameMatch[1].trim()
       const course = courseMatch[1].trim()
       
-      // 調用報名 API
-      const response = await fetch(`${process.env.NEXTAUTH_URL}/api/line-enroll`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lineUserId: userId,
-          name: name,
-          course: course.toLowerCase()
+      // 直接調用報名邏輯，避免 fetch 問題
+      try {
+        const { PrismaClient } = await import('@prisma/client')
+        const { Client } = await import('@line/bot-sdk')
+        
+        const prisma = new PrismaClient()
+        const lineClient = new Client({
+          channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN
         })
-      })
-      
-      const result = await response.json()
-      
-      if (result.success) {
+
+        // 檢查是否已經報名過
+        const existingUser = await prisma.user.findUnique({
+          where: { lineUserId: userId }
+        })
+
+        if (existingUser) {
+          await lineClient.replyMessage(replyToken, {
+            type: 'text',
+            text: '您已經報名過了！'
+          })
+          await prisma.$disconnect()
+          return
+        }
+
+        // 課程名稱對應
+        const courseNames = {
+          'singing': '歌唱課',
+          'guitar': '吉他課',
+          'songwriting': '創作課',
+          'band-workshop': '春曲創作團班'
+        }
+
+        const courseName = courseNames[course.toLowerCase()] || course
+
+        // 創建新用戶記錄
+        const newUser = await prisma.user.create({
+          data: {
+            lineUserId: userId,
+            name: name,
+            course: course.toLowerCase(),
+            enrollmentDate: new Date(),
+            isVerified: true,
+            welcomeMessageSent: true
+          }
+        })
+
+        // 課程價格設定
+        const coursePrices = {
+          '歌唱課': 'NT$ 3,000',
+          '吉他課': 'NT$ 4,000', 
+          '創作課': 'NT$ 5,000',
+          '春曲創作團班': 'NT$ 6,000'
+        }
+
+        const coursePrice = coursePrices[courseName] || 'NT$ 3,000'
+
+        // 發送付款資訊給學員
+        const paymentMessage = {
+          type: 'text',
+          text: `🎵 感謝 ${name} 報名「${courseName}」！
+
+以下是您的付款資訊：
+
+🏦 銀行：台灣銀行 (004)
+💳 帳號：1234567890123456
+👤 戶名：張文紹
+💰 金額：${coursePrice}
+
+📝 重要提醒：
+• 請於 3 天內完成付款
+• 付款完成後，請回覆「姓名」與「帳號後五碼」
+• 我們會在確認付款後 24 小時內與您聯繫
+
+如有任何問題，請隨時與我們聯繫！
+祝您學習愉快！😊`
+        }
+
+        await lineClient.pushMessage(userId, paymentMessage)
+
         await lineClient.replyMessage(replyToken, {
           type: 'text',
           text: `✅ 報名成功！付款資訊已發送給您，請查看上方訊息。`
         })
-      } else {
+
+        await prisma.$disconnect()
+        
+      } catch (error) {
+        console.error('報名處理錯誤:', error)
         await lineClient.replyMessage(replyToken, {
           type: 'text',
-          text: `❌ 報名失敗：${result.error}`
+          text: `❌ 報名失敗：${error.message}`
         })
       }
     } else {
