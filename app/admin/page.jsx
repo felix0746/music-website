@@ -60,6 +60,18 @@ export default function AdminPage() {
     return new Date(isoString).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
   }
 
+  // 課程代碼轉換為中文名稱的函式
+  const getCourseName = (courseCode) => {
+    const courseNames = {
+      'singing': '歌唱課',
+      'guitar': '吉他課',
+      'songwriting': '創作課',
+      'band-workshop': '春曲創作團班',
+      'spring-composition-group': '春曲創作團班'
+    }
+    return courseNames[courseCode] || courseCode || '未指定'
+  }
+
   return (
     <div className="container mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-8">
@@ -82,7 +94,11 @@ export default function AdminPage() {
               {students.map((student) => (
                 <tr key={student.id}>
                   <td className="px-6 py-4 text-sm text-slate-700">{student.name}</td>
-                  <td className="px-6 py-4 text-sm text-slate-700">{student.course || '未指定'}</td>
+                  <td className="px-6 py-4 text-sm text-slate-700">
+                    <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                      {getCourseName(student.course)}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 text-sm text-slate-500">{formatDateTime(student.createdAt)}</td>
                   <td className="px-6 py-4 text-sm">
                     {student.paymentStatus === 'PAID' ? (
@@ -99,6 +115,7 @@ export default function AdminPage() {
                     {student.paymentStatus === 'PAID' ? (
                       <div className="text-xs space-y-1">
                         <div className="font-medium text-green-700">已付款</div>
+                        <div className="text-blue-600 font-medium">課程: {getCourseName(student.course)}</div>
                         {student.paymentReference && (
                           <div className="text-slate-600">後五碼: {student.paymentReference}</div>
                         )}
@@ -115,7 +132,10 @@ export default function AdminPage() {
                         )}
                       </div>
                     ) : (
-                      <span className="text-slate-400">-</span>
+                      <div className="text-xs">
+                        <span className="text-slate-400">-</span>
+                        <div className="text-blue-600 font-medium mt-1">課程: {getCourseName(student.course)}</div>
+                      </div>
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm">
