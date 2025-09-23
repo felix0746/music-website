@@ -24,12 +24,12 @@ export default function FaqSection() {
   };
 
   return (
-    <section id="faq" className="bg-slate-50 py-12 sm:py-16 md:py-20 lg:py-24">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:ml-20 lg:mr-20">
+    <section id="faq" className="bg-slate-50 py-16 sm:py-16 md:py-20 lg:py-24">
+      <div className="max-w-6xl mx-auto px-6 sm:px-6 lg:ml-20 lg:mr-20">
         <FadeIn>
           <div className="text-center mb-8 sm:mb-12">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mb-3 sm:mb-4">還有問題嗎？</h2>
-              <p className="text-base sm:text-lg leading-6 sm:leading-8 text-slate-600">這裡整理了一些常見問題，希望能為你解惑。</p>
+              <h2 className="text-3xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mb-4 sm:mb-4">還有問題嗎？</h2>
+              <p className="text-lg sm:text-lg leading-6 sm:leading-8 text-slate-600">這裡整理了一些常見問題，希望能為你解惑。</p>
           </div>
         </FadeIn>
         <div className="mt-8 sm:mt-12">
@@ -38,13 +38,13 @@ export default function FaqSection() {
                     <FadeIn key={index} delay={index * 0.1}>
                       <div className="border border-slate-200 rounded-lg">
                         <button
-                            className="w-full px-4 sm:px-6 py-3 sm:py-4 text-left text-sm sm:text-base md:text-lg font-medium text-slate-900 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset transition-colors"
+                            className="w-full px-6 sm:px-6 py-4 sm:py-4 text-left text-lg sm:text-base md:text-lg font-medium text-slate-900 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset transition-colors min-h-[64px] flex items-center"
                             onClick={() => toggleItem(index)}
                         >
                             <div className="flex justify-between items-center">
                                 <span className="pr-2">{faq.question}</span>
                                 <svg
-                                    className={`w-4 h-4 sm:w-5 sm:h-5 transform transition-transform duration-200 flex-shrink-0 ${
+                                    className={`w-6 h-6 sm:w-5 sm:h-5 transform transition-transform duration-200 flex-shrink-0 ${
                                         openItems.has(index) ? 'rotate-180' : ''
                                     }`}
                                     fill="none"

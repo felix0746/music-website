@@ -3,8 +3,8 @@ import FadeIn from './FadeIn';
 
 export default function InstructorSection() {
   return (
-    <section id="instructor" className="bg-slate-50 py-12 sm:py-16 md:py-20 lg:py-24">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:ml-20 lg:mr-20">
+    <section id="instructor" className="bg-slate-50 py-16 sm:py-16 md:py-20 lg:py-24">
+      <div className="max-w-6xl mx-auto px-6 sm:px-6 lg:ml-20 lg:mr-20">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-16 items-center">
           <FadeIn delay={0.2}>
             <div className="flex justify-center lg:justify-start">
@@ -13,22 +13,22 @@ export default function InstructorSection() {
                 alt="講師照片佔位符"
                 width={400}
                 height={400}
-                className="h-48 w-48 sm:h-56 sm:w-56 lg:h-72 lg:w-72 rounded-full object-cover shadow-lg"
+                className="h-56 w-56 sm:h-56 sm:w-56 lg:h-72 lg:w-72 rounded-full object-cover shadow-lg"
               />
             </div>
           </FadeIn>
           <FadeIn delay={0.4}>
             <div className="text-center lg:text-left">
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">
+              <h2 className="text-4xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">
                 關於我
               </h2>
-              <h3 className="mt-3 text-xl sm:text-2xl font-semibold text-slate-700">
+              <h3 className="mt-4 text-2xl sm:text-2xl font-semibold text-slate-700">
                 [你的名字或藝名]
               </h3>
-              <p className="mt-6 text-base sm:text-lg leading-7 sm:leading-8 text-slate-600">
+              <p className="mt-6 text-lg sm:text-lg leading-7 sm:leading-8 text-slate-600">
                 這是一段關於你的音樂故事與教學理念的佔位符文字。Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
               </p>
-              <p className="mt-4 text-base sm:text-lg leading-7 sm:leading-8 text-slate-600">
+              <p className="mt-4 text-lg sm:text-lg leading-7 sm:leading-8 text-slate-600">
                 這裡可以放你的專業經歷，例如合作過的藝人、發行的作品、教學年資等等。Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
               </p>
               <div className="mt-6 sm:mt-8 flex justify-center gap-x-6 md:justify-start">

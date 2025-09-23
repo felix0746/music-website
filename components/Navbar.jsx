@@ -106,18 +106,18 @@ export default function Navbar() {
 
       {/* 手機版頂部 Logo */}
       <div className="lg:hidden bg-white shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex justify-center">
-            <a href="/" className="text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors">
-              MyMusic
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex justify-center items-center">
+            <a href="/" className="text-2xl font-bold text-gray-800 hover:text-blue-600 transition-colors">
+              🎵 MyMusic
             </a>
           </div>
         </div>
       </div>
 
       {/* 手機版底部固定導覽 */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-        <div className="grid grid-cols-5 h-16">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 shadow-lg">
+        <div className="grid grid-cols-5 h-20">
           <a 
             href="#courses" 
             className={`flex flex-col items-center justify-center text-xs font-medium transition-colors ${
@@ -126,10 +126,10 @@ export default function Navbar() {
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <svg className="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-6 h-6 mb-1" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
-            <span>課程</span>
+            <span className="text-sm">課程</span>
           </a>
           
           <a 
@@ -140,10 +140,10 @@ export default function Navbar() {
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <svg className="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-6 h-6 mb-1" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/>
             </svg>
-            <span>講師</span>
+            <span className="text-sm">講師</span>
           </a>
           
           <a 
@@ -154,10 +154,10 @@ export default function Navbar() {
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <svg className="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-6 h-6 mb-1" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
             </svg>
-            <span>見證</span>
+            <span className="text-sm">見證</span>
           </a>
           
           <a 
@@ -168,10 +168,10 @@ export default function Navbar() {
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            <svg className="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-6 h-6 mb-1" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"/>
             </svg>
-            <span>FAQ</span>
+            <span className="text-sm">FAQ</span>
           </a>
           
           <a 
@@ -182,10 +182,10 @@ export default function Navbar() {
                 : 'text-green-500 hover:text-green-700'
             }`}
           >
-            <svg className="w-5 h-5 mb-1" fill="currentColor" viewBox="0 0 20 20">
+            <svg className="w-6 h-6 mb-1" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd"/>
             </svg>
-            <span>報名</span>
+            <span className="text-sm">報名</span>
           </a>
         </div>
       </nav>

@@ -29,14 +29,14 @@ const testimonials = [
 
 export default function TestimonialsSection() {
   return (
-    <section id="testimonials" className="bg-white py-12 sm:py-16 md:py-20 lg:py-24">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:ml-20 lg:mr-20">
+    <section id="testimonials" className="bg-white py-16 sm:py-16 md:py-20 lg:py-24">
+      <div className="max-w-6xl mx-auto px-6 sm:px-6 lg:ml-20 lg:mr-20">
         <FadeIn>
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mb-3 sm:mb-4">
+            <h2 className="text-3xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mb-4 sm:mb-4">
               學員見證
             </h2>
-            <p className="text-base sm:text-lg leading-6 sm:leading-8 text-slate-600">
+            <p className="text-lg sm:text-lg leading-6 sm:leading-8 text-slate-600">
               聽聽學員們的學習心得與成長故事
             </p>
           </div>
@@ -50,14 +50,14 @@ export default function TestimonialsSection() {
           <motion.div 
             className="flex gap-4 sm:gap-6 cursor-grab active:cursor-grabbing"
             drag="x"
-            dragConstraints={{ left: -((testimonials.length - 1) * 280), right: 0 }}
+            dragConstraints={{ left: -((testimonials.length - 1) * 300), right: 0 }}
             dragElastic={0.1}
             whileDrag={{ cursor: 'grabbing' }}
-            style={{ width: `${testimonials.length * 280}px` }}
+            style={{ width: `${testimonials.length * 300}px` }}
           >
             {testimonials.map((testimonial, index) => (
               <FadeIn key={testimonial.id} delay={index * 0.1}>
-                <div className="bg-slate-50 rounded-lg p-4 sm:p-6 shadow-sm flex-shrink-0 w-64 sm:w-72 h-48 sm:h-52 flex flex-col justify-between">
+                <div className="bg-slate-50 rounded-lg p-6 sm:p-6 shadow-sm flex-shrink-0 w-72 sm:w-72 h-56 sm:h-52 flex flex-col justify-between">
               <div>
                 <div className="flex items-center mb-3 sm:mb-4">
                   {[...Array(testimonial.rating)].map((_, i) => (
@@ -71,13 +71,13 @@ export default function TestimonialsSection() {
                     </svg>
                   ))}
                 </div>
-                <p className="text-sm sm:text-base text-slate-700 mb-3 sm:mb-4 leading-relaxed line-clamp-4">
+                <p className="text-base sm:text-base text-slate-700 mb-4 sm:mb-4 leading-relaxed line-clamp-4">
                   "{testimonial.content}"
                 </p>
               </div>
               <div className="border-t border-slate-200 pt-3 sm:pt-4 mt-auto">
-                <p className="font-semibold text-slate-900 text-sm sm:text-base">{testimonial.name}</p>
-                <p className="text-xs sm:text-sm text-slate-600">{testimonial.course}</p>
+                <p className="font-semibold text-slate-900 text-base sm:text-base">{testimonial.name}</p>
+                <p className="text-sm sm:text-sm text-slate-600">{testimonial.course}</p>
               </div>
             </div>
             </FadeIn>

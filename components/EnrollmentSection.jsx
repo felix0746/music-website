@@ -4,28 +4,28 @@ import FadeIn from './FadeIn';
 
 export default function EnrollmentSection() {
   return (
-    <section id="enroll" className="bg-white py-12 sm:py-16 md:py-20 lg:py-24">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:ml-20 lg:mr-20">
+    <section id="enroll" className="bg-white py-16 sm:py-16 md:py-20 lg:py-24">
+      <div className="max-w-6xl mx-auto px-6 sm:px-6 lg:ml-20 lg:mr-20">
         <FadeIn>
           <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mb-3 sm:mb-4">
+            <h2 className="text-3xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mb-4 sm:mb-4">
               現在就開啟你的音樂旅程
             </h2>
-            <p className="text-base sm:text-lg leading-6 sm:leading-8 text-slate-600">
+            <p className="text-lg sm:text-lg leading-6 sm:leading-8 text-slate-600">
               透過 LINE 官方帳號完成報名，安全獲取付款資訊！
             </p>
           </div>
         </FadeIn>
         
         <FadeIn delay={0.2}>
-          <div className="rounded-2xl bg-slate-50 p-4 sm:p-6 md:p-8 shadow-lg max-w-3xl mx-auto text-center">
+          <div className="rounded-2xl bg-slate-50 p-8 sm:p-6 md:p-8 shadow-lg max-w-3xl mx-auto text-center">
             {/* LINE 報名按鈕 */}
             <div className="space-y-6">
               <div className="space-y-4">
-                <h3 className="text-xl sm:text-2xl font-bold text-slate-800">
+                <h3 className="text-2xl sm:text-2xl font-bold text-slate-800">
                   立即透過 LINE 報名
                 </h3>
-                <p className="text-base sm:text-lg text-slate-600">
+                <p className="text-lg sm:text-lg text-slate-600">
                   加入我們的 LINE 官方帳號，直接在 LINE 中完成報名並獲取付款資訊
                 </p>
               </div>
@@ -34,10 +34,10 @@ export default function EnrollmentSection() {
                 href="https://line.me/R/ti/p/@363nnttn" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-4 px-8 sm:px-12 rounded-lg text-lg sm:text-xl transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="inline-flex items-center justify-center w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-5 px-8 sm:px-12 rounded-xl text-xl sm:text-xl transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 min-h-[64px]"
               >
                 <svg
-                  className="w-6 h-6 sm:w-8 sm:h-8 mr-3 sm:mr-4"
+                  className="w-8 h-8 sm:w-8 sm:h-8 mr-4 sm:mr-4"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                 >

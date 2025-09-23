@@ -8,13 +8,13 @@ export default function LineFloatingButton() {
       href="https://line.me/R/ti/p/@363nnttn"
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-50 h-16 w-16 bg-green-500 hover:bg-green-600 rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
+      className="fixed bottom-24 right-6 z-50 h-20 w-20 bg-green-500 hover:bg-green-600 rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.95 }}
       transition={{ duration: 0.2 }}
     >
       <svg 
-        className="w-8 h-8 text-white" 
+        className="w-10 h-10 text-white" 
         viewBox="0 0 24 24" 
         fill="currentColor"
       >
