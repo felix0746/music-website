@@ -27,8 +27,9 @@ export default function AdminPage() {
   }, [])
 
   // 更新學生付款狀態的函式
-  const handleUpdateStatus = async (studentId) => {
-    if (!confirm('您確定要將這位學員標記為「已付款」嗎？此操作無法復原。')) {
+  const handleUpdateStatus = async (studentId, newStatus) => {
+    const statusText = newStatus === 'PAID' ? '已付款' : '尚未付款'
+    if (!confirm(`您確定要將這位學員標記為「${statusText}」嗎？`)) {
       return
     }
 
@@ -36,7 +37,7 @@ export default function AdminPage() {
       const response = await fetch(`/api/admin/students/${studentId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentStatus: 'PAID' }),
+        body: JSON.stringify({ paymentStatus: newStatus }),
       })
 
       if (!response.ok) {
@@ -45,7 +46,7 @@ export default function AdminPage() {
 
       // 即時更新畫面上該學生的狀態，無需重新整理
       setStudents(students.map(s => 
-        s.id === studentId ? { ...s, paymentStatus: 'PAID' } : s
+        s.id === studentId ? { ...s, paymentStatus: newStatus } : s
       ))
       alert('更新成功！')
     } catch (error) {
@@ -70,8 +71,10 @@ export default function AdminPage() {
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">姓名</th>
+                <th className="px-6 py-3 text-sm font-semibold text-slate-900">課程</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">註冊日期</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">付款狀態</th>
+                <th className="px-6 py-3 text-sm font-semibold text-slate-900">付款資訊</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">操作</th>
               </tr>
             </thead>
@@ -79,6 +82,7 @@ export default function AdminPage() {
               {students.map((student) => (
                 <tr key={student.id}>
                   <td className="px-6 py-4 text-sm text-slate-700">{student.name}</td>
+                  <td className="px-6 py-4 text-sm text-slate-700">{student.course || '未指定'}</td>
                   <td className="px-6 py-4 text-sm text-slate-500">{formatDateTime(student.createdAt)}</td>
                   <td className="px-6 py-4 text-sm">
                     {student.paymentStatus === 'PAID' ? (
@@ -91,15 +95,35 @@ export default function AdminPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-sm">
-                    {student.paymentStatus === 'UNPAID' && (
-                      <button
-                        onClick={() => handleUpdateStatus(student.id)}
-                        className="rounded bg-indigo-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                      >
-                        標記為已付款
-                      </button>
+                  <td className="px-6 py-4 text-sm text-slate-600">
+                    {student.paymentStatus === 'PAID' ? (
+                      <div className="text-xs">
+                        {student.paymentReference && <div>後五碼: {student.paymentReference}</div>}
+                        {student.paymentAmount && <div>金額: {student.paymentAmount}</div>}
+                        {student.paymentDate && <div>付款時間: {formatDateTime(student.paymentDate)}</div>}
+                      </div>
+                    ) : (
+                      <span className="text-slate-400">-</span>
                     )}
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    <div className="flex gap-2">
+                      {student.paymentStatus === 'UNPAID' ? (
+                        <button
+                          onClick={() => handleUpdateStatus(student.id, 'PAID')}
+                          className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                        >
+                          標記為已付款
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleUpdateStatus(student.id, 'UNPAID')}
+                          className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                        >
+                          標記為未付款
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

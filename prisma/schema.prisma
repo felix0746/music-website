@@ -24,6 +24,13 @@ model User {
   // vvv 新增的欄位 vvv
   paymentStatus PaymentStatus @default(UNPAID)
   
+  // vvv 付款詳細資訊 vvv
+  paymentAmount    String?   // 付款金額
+  paymentMethod    String?   // 付款方式
+  paymentReference String?   // 付款參考號碼（後五碼等）
+  paymentDate      DateTime? // 付款日期
+  paymentNotes     String?   // 付款備註
+  
   // vvv 報名驗證系統 vvv
   enrollmentCode String? @unique  // 報名碼
   isVerified     Boolean @default(false)  // 是否已驗證

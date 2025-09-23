@@ -237,12 +237,19 @@ async function handlePaymentReport(userId, message, replyToken) {
   const prismaInstance = getPrisma()
   const lineClientInstance = getLineClient()
   
-  // 更新用戶付款狀態
+  // 解析付款回報資訊
+  const paymentInfo = parsePaymentMessage(message)
+  
+  // 更新用戶付款狀態和詳細資訊
   await prismaInstance.user.update({
     where: { lineUserId: userId },
     data: { 
       paymentStatus: 'PAID',
-      // 可以在這裡添加付款確認時間等資訊
+      paymentReference: paymentInfo.reference,
+      paymentAmount: paymentInfo.amount,
+      paymentMethod: paymentInfo.method,
+      paymentDate: new Date(),
+      paymentNotes: paymentInfo.notes
     }
   })
 
@@ -251,4 +258,28 @@ async function handlePaymentReport(userId, message, replyToken) {
 我們會盡快確認您的付款，並在 24 小時內與您聯繫安排課程。
 
 感謝您的報名，祝您學習愉快！🎵`)
+}
+
+// 解析付款回報訊息的函數
+function parsePaymentMessage(message) {
+  const result = {
+    reference: null,
+    amount: null,
+    method: '銀行轉帳',
+    notes: message
+  }
+  
+  // 提取後五碼
+  const referenceMatch = message.match(/(\d{5})/)
+  if (referenceMatch) {
+    result.reference = referenceMatch[1]
+  }
+  
+  // 提取金額
+  const amountMatch = message.match(/(\d{1,3}(?:,\d{3})*)/)
+  if (amountMatch) {
+    result.amount = amountMatch[1]
+  }
+  
+  return result
 }
