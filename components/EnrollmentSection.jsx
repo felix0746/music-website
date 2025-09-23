@@ -54,18 +54,18 @@ export default function EnrollmentSection() {
 
       const result = await response.json();
 
-      if (response.ok) {
-        setMessage('報名成功，我們會盡快與您聯繫！');
-        // 清空表單
-        setFormData({
-          name: '',
-          email: '',
-          confirmEmail: '',
-          course: ''
-        });
-      } else {
-        setMessage(result.error || '提交失敗，請稍後再試');
-      }
+             if (response.ok) {
+               setMessage('報名成功！請加入我們的 LINE 官方帳號以獲取付款資訊。');
+               // 清空表單
+               setFormData({
+                 name: '',
+                 email: '',
+                 confirmEmail: '',
+                 course: ''
+               });
+             } else {
+               setMessage(result.error || '提交失敗，請稍後再試');
+             }
     } catch (error) {
       console.error('Error:', error);
       setMessage('提交失敗，請檢查網路連線');
@@ -198,32 +198,33 @@ export default function EnrollmentSection() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 sm:px-8 rounded-lg text-sm sm:text-base md:text-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
                   >
-                    <svg 
-                      className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3" 
-                      viewBox="0 0 24 24" 
+                    <svg
+                      className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3"
+                      viewBox="0 0 24 24"
                       fill="currentColor"
                     >
                       <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.279.629-.631.629-.345 0-.626-.285-.626-.629V8.108c0-.345.281-.63.63-.63.346 0 .627.285.627.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
                     </svg>
-                    透過 LINE 官方帳號報名
+                    加入 LINE 獲取付款資訊
                   </a>
                   <p className="text-xs sm:text-sm text-slate-500">
-                    點擊按鈕，加入好友後即可傳送訊息報名！
+                    完成報名後，請加入 LINE 官方帳號以獲取安全的付款資訊！
                   </p>
                   
                 </div>
               </div>
             </FadeIn>
-          <FadeIn delay={0.4}>
-            <div className="mt-8 sm:mt-12 text-center text-slate-600 max-w-3xl mx-auto">
-                  <h3 className="font-semibold text-base sm:text-lg text-slate-800">報名流程說明</h3>
-                  <div className="mt-2 space-y-1 text-sm sm:text-base">
-                      <p>1. 填寫並送出上方表單。</p>
-                      <p>2. 我們會透過 Email 發送付款資訊給您。</p>
-                      <p>3. 完成匯款後，請將您的「姓名」與「帳號後五碼」透過 Email 或官方 Line 通知我們。</p>
-                  </div>
-                </div>
-              </FadeIn>
+                 <FadeIn delay={0.4}>
+                   <div className="mt-8 sm:mt-12 text-center text-slate-600 max-w-3xl mx-auto">
+                         <h3 className="font-semibold text-base sm:text-lg text-slate-800">報名流程說明</h3>
+                         <div className="mt-2 space-y-1 text-sm sm:text-base">
+                             <p>1. 填寫並送出上方表單。</p>
+                             <p>2. 加入我們的 LINE 官方帳號。</p>
+                             <p>3. 我們會透過 LINE 發送安全的付款資訊給您。</p>
+                             <p>4. 完成匯款後，請將您的「姓名」與「帳號後五碼」透過 LINE 回報給我們。</p>
+                         </div>
+                       </div>
+                     </FadeIn>
         </div>
     </section>
   );
