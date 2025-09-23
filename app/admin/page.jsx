@@ -108,6 +108,7 @@ export default function AdminPage() {
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">姓名</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">課程</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">註冊日期</th>
+                <th className="px-6 py-3 text-sm font-semibold text-slate-900">報名狀態</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">付款狀態</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">付款資訊</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">操作</th>
@@ -123,6 +124,21 @@ export default function AdminPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-500">{formatDateTime(student.createdAt)}</td>
+                  <td className="px-6 py-4 text-sm">
+                    {student.enrollmentStatus === 'ACTIVE' ? (
+                      <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                        有效報名
+                      </span>
+                    ) : student.enrollmentStatus === 'CANCELLED' ? (
+                      <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
+                        已取消
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-600/10">
+                        已完成
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-sm">
                     {student.paymentStatus === 'PAID' ? (
                       <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
@@ -177,20 +193,24 @@ export default function AdminPage() {
                   </td>
                   <td className="px-6 py-4 text-sm">
                     <div className="flex gap-2">
-                      {student.paymentStatus === 'UNPAID' ? (
-                        <button
-                          onClick={() => handleUpdateStatus(student.id, 'PAID')}
-                          className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                        >
-                          標記為已付款
-                        </button>
+                      {student.enrollmentStatus === 'ACTIVE' ? (
+                        student.paymentStatus === 'UNPAID' ? (
+                          <button
+                            onClick={() => handleUpdateStatus(student.id, 'PAID')}
+                            className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                          >
+                            標記為已付款
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleUpdateStatus(student.id, 'UNPAID')}
+                            className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                          >
+                            標記為未付款
+                          </button>
+                        )
                       ) : (
-                        <button
-                          onClick={() => handleUpdateStatus(student.id, 'UNPAID')}
-                          className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-                        >
-                          標記為未付款
-                        </button>
+                        <span className="text-xs text-gray-400">-</span>
                       )}
                     </div>
                   </td>

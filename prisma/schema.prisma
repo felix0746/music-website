@@ -35,10 +35,31 @@ model User {
   enrollmentCode String? @unique  // 報名碼
   isVerified     Boolean @default(false)  // 是否已驗證
   enrollmentDate DateTime?  // 報名日期
+  
+  // vvv 取消課程系統 vvv
+  enrollmentStatus EnrollmentStatus @default(ACTIVE)  // 報名狀態
+  cancellationDate DateTime?  // 取消日期
+  cancellationReason String?  // 取消原因
+  refundStatus RefundStatus @default(NONE)  // 退費狀態
+  refundAmount String?  // 退費金額
+  refundDate DateTime?  // 退費日期
 }
 
 // vvv 新增的 Enum vvv
 enum PaymentStatus {
   UNPAID // 尚未付款
   PAID   // 已付款
+}
+
+enum EnrollmentStatus {
+  ACTIVE    // 有效報名
+  CANCELLED // 已取消
+  COMPLETED // 已完成
+}
+
+enum RefundStatus {
+  NONE      // 無退費
+  PENDING   // 退費處理中
+  COMPLETED // 退費完成
+  REJECTED  // 退費被拒絕
 }

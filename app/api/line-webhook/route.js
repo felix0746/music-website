@@ -94,6 +94,9 @@ async function handleTextMessage(event) {
       } else if (userMessage.includes('報名') || userMessage.includes('新課程') || userMessage.includes('下一季')) {
         // 用戶想要重新報名
         await handleReEnrollment(userId, userMessage, replyToken)
+      } else if (userMessage.includes('取消') || userMessage.includes('退課') || userMessage.includes('退費')) {
+        // 用戶想要取消課程
+        await handleCancellation(userId, userMessage, replyToken)
       } else {
         // 發送一般回覆，提供多個選項
         await safeReplyMessage(lineClientInstance, replyToken, `👋 歡迎回來！
@@ -105,6 +108,9 @@ async function handleTextMessage(event) {
 
 📚 重新報名
 如果您想報名新一季的課程，請回覆「報名」開始新的報名流程
+
+❌ 取消課程
+如果您需要取消課程，請回覆「取消」開始取消流程
 
 ❓ 其他問題
 如有任何疑問，請直接告訴我們！`)
@@ -455,4 +461,150 @@ async function handleReEnrollment(userId, message, replyToken) {
 
 如需重新報名，請回覆「報名」開始流程！`)
   }
+}
+
+// 處理取消課程的函數
+async function handleCancellation(userId, message, replyToken) {
+  const lineClientInstance = getLineClient()
+  
+  // 檢查是否包含取消原因
+  if (message.includes('取消') || message.includes('退課') || message.includes('退費')) {
+    // 引導用戶提供取消原因
+    await safeReplyMessage(lineClientInstance, replyToken, `❌ 取消課程申請
+
+我們很遺憾聽到您想要取消課程。為了更好地為您處理，請提供以下資訊：
+
+取消原因：[請簡述取消原因]
+退費需求：[是/否]
+
+例如：
+取消原因：工作時間變更，無法配合上課時間
+退費需求：是
+
+我們會根據您的付款狀況和取消時間來處理退費事宜。`)
+  } else if (message.includes('取消原因：') || message.includes('退費需求：')) {
+    // 解析取消資訊
+    const reasonMatch = message.match(/取消原因[：:]([^\n退費]+)/)
+    const refundMatch = message.match(/退費需求[：:]([^\n]+)/)
+    
+    if (reasonMatch && refundMatch) {
+      const reason = reasonMatch[1].trim()
+      const refundRequest = refundMatch[1].trim()
+      
+      // 處理取消邏輯
+      try {
+        const prismaInstance = getPrisma()
+        const lineClientInstance = getLineClient()
+
+        // 檢查用戶狀態
+        const user = await prismaInstance.user.findUnique({
+          where: { lineUserId: userId }
+        })
+
+        if (!user) {
+          await safeReplyMessage(lineClientInstance, replyToken, '❌ 找不到您的報名記錄，請聯繫客服。')
+          return
+        }
+
+        if (user.enrollmentStatus === 'CANCELLED') {
+          await safeReplyMessage(lineClientInstance, replyToken, '❌ 您的課程已經取消過了。')
+          return
+        }
+
+        // 更新用戶狀態
+        const updatedUser = await prismaInstance.user.update({
+          where: { lineUserId: userId },
+          data: {
+            enrollmentStatus: 'CANCELLED',
+            cancellationDate: new Date(),
+            cancellationReason: reason,
+            refundStatus: refundRequest === '是' ? 'PENDING' : 'NONE'
+          }
+        })
+
+        // 構建回覆訊息
+        let replyMessage = `✅ 取消申請已收到！
+
+取消資訊：
+• 姓名：${user.name}
+• 課程：${getCourseName(user.course)}
+• 取消原因：${reason}
+• 退費需求：${refundRequest}
+
+`
+
+        if (refundRequest === '是') {
+          // 根據付款狀況決定退費政策
+          if (user.paymentStatus === 'PAID') {
+            const enrollmentDate = new Date(user.enrollmentDate)
+            const daysSinceEnrollment = Math.floor((new Date() - enrollmentDate) / (1000 * 60 * 60 * 24))
+            
+            if (daysSinceEnrollment <= 7) {
+              replyMessage += `💰 退費政策：
+• 開課前 7 天內取消：全額退費
+• 退費金額：${user.paymentAmount || '待確認'}
+• 退費將在 3-5 個工作天內處理完成
+
+我們會盡快為您處理退費事宜！`
+            } else {
+              replyMessage += `💰 退費政策：
+• 開課前 7 天後取消：部分退費
+• 退費金額：${user.paymentAmount ? Math.floor(parseInt(user.paymentAmount.replace(/[^\d]/g, '')) * 0.5) : '待確認'}
+• 退費將在 3-5 個工作天內處理完成
+
+我們會盡快為您處理退費事宜！`
+            }
+          } else {
+            replyMessage += `💰 退費政策：
+• 您尚未完成付款，無需退費
+• 課程已成功取消
+
+感謝您的理解！`
+          }
+        } else {
+          replyMessage += `課程已成功取消，感謝您的理解！`
+        }
+
+        await safeReplyMessage(lineClientInstance, replyToken, replyMessage)
+
+        await prismaInstance.$disconnect()
+        
+      } catch (error) {
+        console.error('取消課程處理錯誤:', error)
+        const lineClientInstance = getLineClient()
+        await safeReplyMessage(lineClientInstance, replyToken, `❌ 取消課程失敗：${error.message}`)
+      }
+    } else {
+      await safeReplyMessage(lineClientInstance, replyToken, `請按照正確格式提供資訊：
+
+取消原因：[請簡述取消原因]
+退費需求：[是/否]`)
+    }
+  } else {
+    // 一般取消引導
+    await safeReplyMessage(lineClientInstance, replyToken, `❌ 取消課程申請
+
+我們很遺憾聽到您想要取消課程。為了更好地為您處理，請提供以下資訊：
+
+取消原因：[請簡述取消原因]
+退費需求：[是/否]
+
+例如：
+取消原因：工作時間變更，無法配合上課時間
+退費需求：是
+
+我們會根據您的付款狀況和取消時間來處理退費事宜。`)
+  }
+}
+
+// 課程代碼轉換為中文名稱的函式
+function getCourseName(courseCode) {
+  const courseNames = {
+    'singing': '歌唱課',
+    'guitar': '吉他課',
+    'songwriting': '創作課',
+    'band-workshop': '春曲創作團班',
+    'spring-composition-group': '春曲創作團班'
+  }
+  return courseNames[courseCode] || courseCode || '未指定'
 }
