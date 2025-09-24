@@ -55,6 +55,47 @@ export default function AdminPage() {
     }
   }
 
+  // 恢復報名的函式
+  const handleRestoreEnrollment = async (studentId) => {
+    const student = students.find(s => s.id === studentId)
+    if (!student) return
+
+    if (!confirm(`您確定要恢復 ${student.name} 的報名狀態嗎？\n\n這將把報名狀態從「已取消」改為「有效報名」。`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/students/${studentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          enrollmentStatus: 'ACTIVE',
+          cancellationDate: null,
+          cancellationReason: null
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('恢復失敗')
+      }
+
+      // 即時更新畫面上該學生的狀態
+      setStudents(students.map(s => 
+        s.id === studentId ? { 
+          ...s, 
+          enrollmentStatus: 'ACTIVE',
+          cancellationDate: null,
+          cancellationReason: null
+        } : s
+      ))
+      
+      alert(`已成功恢復 ${student.name} 的報名狀態！`)
+    } catch (error) {
+      console.error("恢復報名狀態失敗:", error)
+      alert('恢復報名狀態時發生錯誤。')
+    }
+  }
+
   // 處理退款的函式
   const handleRefund = async (studentId, refundStatus) => {
     const student = students.find(s => s.id === studentId)
@@ -278,23 +319,31 @@ export default function AdminPage() {
                           </button>
                         )
                       ) : student.enrollmentStatus === 'CANCELLED' ? (
-                        student.refundStatus === 'NONE' ? (
+                        <div className="flex gap-1">
                           <button
-                            onClick={() => handleRefund(student.id, 'PENDING')}
-                            className="rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                          >
-                            處理退款
-                          </button>
-                        ) : student.refundStatus === 'PENDING' ? (
-                          <button
-                            onClick={() => handleRefund(student.id, 'COMPLETED')}
+                            onClick={() => handleRestoreEnrollment(student.id)}
                             className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                           >
-                            完成退款
+                            恢復報名
                           </button>
-                        ) : (
-                          <span className="text-xs text-green-600 font-medium">已退款</span>
-                        )
+                          {student.refundStatus === 'NONE' ? (
+                            <button
+                              onClick={() => handleRefund(student.id, 'PENDING')}
+                              className="rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                            >
+                              處理退款
+                            </button>
+                          ) : student.refundStatus === 'PENDING' ? (
+                            <button
+                              onClick={() => handleRefund(student.id, 'COMPLETED')}
+                              className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                            >
+                              完成退款
+                            </button>
+                          ) : (
+                            <span className="text-xs text-green-600 font-medium">已退款</span>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-xs text-gray-400">-</span>
                       )}
