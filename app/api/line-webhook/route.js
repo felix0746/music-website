@@ -102,8 +102,8 @@ async function handleTextMessage(event) {
       } else if (userMessage.includes('付款') || userMessage.includes('匯款') || userMessage.includes('後五碼')) {
         await handlePaymentReport(userId, userMessage, replyToken)
       } else if (userMessage.includes('報名') || userMessage.includes('新課程') || userMessage.includes('下一季')) {
-        // 用戶想要重新報名
-        await handleReEnrollment(userId, userMessage, replyToken)
+        // 用戶想要重新報名，但先檢查當前狀態
+        await handleEnrollmentRequest(userId, userMessage, replyToken)
       } else if (userMessage.includes('取消') || userMessage.includes('退課') || userMessage.includes('退費')) {
         // 用戶想要取消課程
         await handleCancellation(userId, userMessage, replyToken)
@@ -482,6 +482,75 @@ function parsePaymentMessage(message) {
   return result
 }
 
+// 處理報名請求的函數（檢查用戶狀態）
+async function handleEnrollmentRequest(userId, message, replyToken) {
+  const lineClientInstance = getLineClient()
+  const prismaInstance = getPrisma()
+  
+  try {
+    // 檢查用戶當前狀態
+    const currentUser = await prismaInstance.user.findUnique({
+      where: { lineUserId: userId }
+    })
+
+    if (!currentUser) {
+      await safeReplyMessage(lineClientInstance, replyToken, '❌ 找不到您的記錄，請聯繫客服。')
+      return
+    }
+
+    // 如果用戶已完成付款，不允許重新報名
+    if (currentUser.enrollmentStatus === 'ACTIVE' && currentUser.paymentStatus === 'PAID') {
+      await safeReplyMessage(lineClientInstance, replyToken, `您目前已經完成報名並付款！
+
+您的當前報名資訊：
+• 姓名：${currentUser.name}
+• 課程：${getCourseName(currentUser.course)}
+• 付款狀態：已付款 ✅
+
+如果您需要報名新一季課程，請先取消現有報名後再重新報名。
+
+如有任何疑問，請聯繫客服。`)
+      return
+    }
+
+    // 如果用戶未完成付款，提醒完成付款
+    if (currentUser.enrollmentStatus === 'ACTIVE' && (currentUser.paymentStatus === 'PARTIAL' || currentUser.paymentStatus === 'PENDING' || currentUser.paymentStatus === 'UNPAID')) {
+      await safeReplyMessage(lineClientInstance, replyToken, `您目前已經有報名記錄，但付款尚未完成！
+
+您的當前報名資訊：
+• 姓名：${currentUser.name}
+• 課程：${getCourseName(currentUser.course)}
+• 付款狀態：${currentUser.paymentStatus === 'PARTIAL' ? '部分付款' : 
+                      currentUser.paymentStatus === 'PENDING' ? '待補付' : '尚未付款'}
+
+請選擇：
+• 完成付款：回覆「付款」開始付款回報流程
+• 更改課程：回覆「取消」先取消現有報名`)
+      return
+    }
+
+    // 如果用戶狀態是 CANCELLED 或 COMPLETED，引導重新報名
+    await safeReplyMessage(lineClientInstance, replyToken, `🎵 歡迎報名新一季的音樂課程！
+
+請按照以下格式提供您的資訊：
+
+姓名：[您的姓名]
+課程：[歌唱課/吉他課/創作課/春曲創作團班]
+
+例如：
+姓名：張小明
+課程：歌唱課
+
+我們會為您處理新一季的報名並發送付款資訊！`)
+
+  } catch (error) {
+    console.error('處理報名請求時發生錯誤:', error)
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。')
+  } finally {
+    await prismaInstance.$disconnect()
+  }
+}
+
 // 處理重新報名的函數
 async function handleReEnrollment(userId, message, replyToken) {
   const lineClientInstance = getLineClient()
@@ -513,19 +582,32 @@ async function handleReEnrollment(userId, message, replyToken) {
         }
 
         // 檢查是否可以重新報名
-        if (currentUser.enrollmentStatus === 'ACTIVE') {
-          await safeReplyMessage(lineClientInstance, replyToken, `您目前已經有效報名了！
+        if (currentUser.enrollmentStatus === 'ACTIVE' && currentUser.paymentStatus === 'PAID') {
+          await safeReplyMessage(lineClientInstance, replyToken, `您目前已經完成報名並付款！
 
 您的當前報名資訊：
 • 姓名：${currentUser.name}
 • 課程：${getCourseName(currentUser.course)}
-• 付款狀態：${currentUser.paymentStatus === 'PAID' ? '已付款' : 
-                      currentUser.paymentStatus === 'PARTIAL' ? '部分付款' : 
+• 付款狀態：已付款 ✅
+
+如果您需要：
+• 報名新一季課程：請先取消現有報名
+• 更改課程：請先取消現有報名
+• 其他問題：請聯繫客服`)
+          await prismaInstance.$disconnect()
+          return
+        } else if (currentUser.enrollmentStatus === 'ACTIVE' && (currentUser.paymentStatus === 'PARTIAL' || currentUser.paymentStatus === 'PENDING' || currentUser.paymentStatus === 'UNPAID')) {
+          await safeReplyMessage(lineClientInstance, replyToken, `您目前已經有效報名，但付款尚未完成！
+
+您的當前報名資訊：
+• 姓名：${currentUser.name}
+• 課程：${getCourseName(currentUser.course)}
+• 付款狀態：${currentUser.paymentStatus === 'PARTIAL' ? '部分付款' : 
                       currentUser.paymentStatus === 'PENDING' ? '待補付' : '尚未付款'}
 
 如果您需要：
-• 更改課程：請先取消現有報名
 • 完成付款：請回報付款資訊
+• 更改課程：請先取消現有報名
 • 其他問題：請聯繫客服`)
           await prismaInstance.$disconnect()
           return
