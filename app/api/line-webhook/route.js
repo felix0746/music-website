@@ -612,8 +612,12 @@ async function handleReEnrollment(userId, message, replyToken) {
 async function handleCancellation(userId, message, replyToken) {
   const lineClientInstance = getLineClient()
   
+  console.log('處理取消課程，用戶 ID:', userId)
+  console.log('取消訊息內容:', message)
+  
   // 檢查是否包含完整的取消資訊
   if (message.includes('姓名：') && message.includes('課程：') && message.includes('取消原因：') && message.includes('退費需求：')) {
+    console.log('✅ 包含完整取消資訊格式')
     // 解析取消資訊
     const lines = message.split(/\n|\r\n|\r/)
     let name = '', course = '', reason = '', refundRequest = ''
@@ -634,7 +638,10 @@ async function handleCancellation(userId, message, replyToken) {
       }
     }
     
+    console.log('解析結果:', { name, course, reason, refundRequest })
+    
     if (name && course && reason && refundRequest) {
+      console.log('✅ 解析成功，開始處理取消邏輯')
       
       // 處理取消邏輯
       try {
@@ -670,6 +677,7 @@ async function handleCancellation(userId, message, replyToken) {
         }
 
         // 更新用戶狀態
+        console.log('更新用戶狀態為 CANCELLED，原因:', reason)
         const updatedUser = await prismaInstance.user.update({
           where: { lineUserId: userId },
           data: {
@@ -679,6 +687,7 @@ async function handleCancellation(userId, message, replyToken) {
             refundStatus: refundRequest === '是' ? 'PENDING' : 'NONE'
           }
         })
+        console.log('✅ 用戶狀態更新成功:', updatedUser.enrollmentStatus)
 
         // 構建回覆訊息
         let replyMessage = `✅ 取消申請已收到！
