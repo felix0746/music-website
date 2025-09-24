@@ -20,6 +20,7 @@ export default function AdminPage() {
   // 通知模板狀態
   const [notificationTemplates, setNotificationTemplates] = useState({})
   const [showNotificationModal, setShowNotificationModal] = useState(false)
+  
 
   // 測試 LINE 連線的函式
   const testLineConnection = async () => {
@@ -71,6 +72,7 @@ export default function AdminPage() {
       console.error('獲取通知模板失敗:', error)
     }
   }
+
 
   // 更新學生付款狀態的函式
   const handleUpdateStatus = async (studentId, newStatus) => {
