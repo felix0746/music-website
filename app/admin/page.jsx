@@ -255,7 +255,7 @@ LINE ID：${student.lineUserId}
   }
 
   // 篩選學員的函式
-  const filteredStudents = students.filter(student => {
+  const filteredStudents = (students || []).filter(student => {
     // 搜索條件（姓名）
     const matchesSearch = searchTerm === '' || 
       student.name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -403,12 +403,12 @@ LINE ID：${student.lineUserId}
         {/* 統計信息 */}
         <div className="flex items-center justify-between text-sm text-gray-600">
           <div>
-            顯示 {filteredStudents.length} / {students.length} 位學員
+            顯示 {filteredStudents?.length || 0} / {students?.length || 0} 位學員
           </div>
           <div className="flex gap-4">
-            <span>已付款: {filteredStudents.filter(s => s.paymentStatus === 'PAID').length}</span>
-            <span>部分付款: {filteredStudents.filter(s => s.paymentStatus === 'PARTIAL').length}</span>
-            <span>尚未付款: {filteredStudents.filter(s => s.paymentStatus === 'UNPAID').length}</span>
+            <span>已付款: {filteredStudents?.filter(s => s.paymentStatus === 'PAID').length || 0}</span>
+            <span>部分付款: {filteredStudents?.filter(s => s.paymentStatus === 'PARTIAL').length || 0}</span>
+            <span>尚未付款: {filteredStudents?.filter(s => s.paymentStatus === 'UNPAID').length || 0}</span>
           </div>
         </div>
       </div>
@@ -430,7 +430,7 @@ LINE ID：${student.lineUserId}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
-              {filteredStudents.map((student) => (
+              {filteredStudents?.map((student) => (
                 <tr key={student.id}>
                   <td className="px-6 py-4 text-sm text-slate-700">{student.name}</td>
                   <td className="px-6 py-4 text-sm text-slate-700">
@@ -444,7 +444,7 @@ LINE ID：${student.lineUserId}
                         <>
                           <div className="font-medium text-green-700">已連結 LINE</div>
                           <div className="text-slate-500 font-mono text-xs break-all">
-                            ID: {student.lineUserId.substring(0, 8)}...
+                            ID: {student.lineUserId?.substring(0, 8)}...
                           </div>
                           <button
                             onClick={() => {
