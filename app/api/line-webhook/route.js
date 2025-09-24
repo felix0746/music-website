@@ -89,8 +89,14 @@ async function handleTextMessage(event) {
 
     if (existingUser) {
       // 如果已經報名，檢查用戶意圖
-      // 優先檢查是否為報名資訊格式
-      if ((userMessage.includes('姓名：') || userMessage.includes('姓名:')) && (userMessage.includes('課程：') || userMessage.includes('課程:'))) {
+      // 優先檢查是否為取消課程格式（包含取消原因和退費需求）
+      if ((userMessage.includes('姓名：') || userMessage.includes('姓名:')) && 
+          (userMessage.includes('課程：') || userMessage.includes('課程:')) &&
+          (userMessage.includes('取消原因：') || userMessage.includes('取消原因:')) &&
+          (userMessage.includes('退費需求：') || userMessage.includes('退費需求:'))) {
+        // 用戶想要取消課程
+        await handleCancellation(userId, userMessage, replyToken)
+      } else if ((userMessage.includes('姓名：') || userMessage.includes('姓名:')) && (userMessage.includes('課程：') || userMessage.includes('課程:'))) {
         // 用戶提供了報名資訊，處理重新報名
         await handleReEnrollment(userId, userMessage, replyToken)
       } else if (userMessage.includes('付款') || userMessage.includes('匯款') || userMessage.includes('後五碼')) {
