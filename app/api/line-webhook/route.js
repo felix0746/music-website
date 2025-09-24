@@ -615,16 +615,26 @@ async function handleCancellation(userId, message, replyToken) {
   // 檢查是否包含完整的取消資訊
   if (message.includes('姓名：') && message.includes('課程：') && message.includes('取消原因：') && message.includes('退費需求：')) {
     // 解析取消資訊
-    const nameMatch = message.match(/姓名[：:]\s*([^\n課程]+)/)
-    const courseMatch = message.match(/課程[：:]\s*([^\n取消]+)/)
-    const reasonMatch = message.match(/取消原因[：:]\s*([^\n退費]+)/)
-    const refundMatch = message.match(/退費需求[：:]\s*([^\n]+)/)
+    const lines = message.split(/\n|\r\n|\r/)
+    let name = '', course = '', reason = '', refundRequest = ''
     
-    if (nameMatch && courseMatch && reasonMatch && refundMatch) {
-      const name = nameMatch[1].trim()
-      const course = courseMatch[1].trim()
-      const reason = reasonMatch[1].trim()
-      const refundRequest = refundMatch[1].trim()
+    for (const line of lines) {
+      if (line.includes('姓名')) {
+        const match = line.match(/姓名[：:]\s*(.+)/)
+        if (match) name = match[1].trim()
+      } else if (line.includes('課程')) {
+        const match = line.match(/課程[：:]\s*(.+)/)
+        if (match) course = match[1].trim()
+      } else if (line.includes('取消原因')) {
+        const match = line.match(/取消原因[：:]\s*(.+)/)
+        if (match) reason = match[1].trim()
+      } else if (line.includes('退費需求')) {
+        const match = line.match(/退費需求[：:]\s*(.+)/)
+        if (match) refundRequest = match[1].trim()
+      }
+    }
+    
+    if (name && course && reason && refundRequest) {
       
       // 處理取消邏輯
       try {
