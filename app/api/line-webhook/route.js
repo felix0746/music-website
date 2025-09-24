@@ -297,12 +297,21 @@ async function handlePaymentReport(userId, message, replyToken) {
   
   let enrollmentStatus = 'ACTIVE'
   let paymentStatus = 'PAID'
+  let paymentNotes = paymentInfo.notes || ''
   
   // 檢查金額是否正確
-  if (paidNumber !== expectedNumber) {
-    enrollmentStatus = 'CANCELLED' // 金額不符，標記為取消
-    paymentStatus = 'UNPAID' // 付款狀態改為未付款
+  if (paidNumber < expectedNumber) {
+    // 金額不足，標記為取消
+    enrollmentStatus = 'CANCELLED'
+    paymentStatus = 'UNPAID'
+  } else if (paidNumber > expectedNumber) {
+    // 金額過多，接受付款但記錄超額
+    const overAmount = paidNumber - expectedNumber
+    paymentNotes = paymentNotes ? 
+      `${paymentNotes}\n[系統備註：超額付款 ${overAmount} 元，將安排退費]` : 
+      `[系統備註：超額付款 ${overAmount} 元，將安排退費]`
   }
+  // 金額正確時，保持預設狀態
   
   // 更新用戶付款狀態和詳細資訊
   await prismaInstance.user.update({
@@ -314,9 +323,9 @@ async function handlePaymentReport(userId, message, replyToken) {
       paymentAmount: paymentInfo.amount,
       paymentMethod: paymentInfo.method,
       paymentDate: new Date(),
-      paymentNotes: paymentInfo.notes,
+      paymentNotes: paymentNotes,
       cancellationDate: enrollmentStatus === 'CANCELLED' ? new Date() : null,
-      cancellationReason: enrollmentStatus === 'CANCELLED' ? '付款金額不符' : null
+      cancellationReason: enrollmentStatus === 'CANCELLED' ? '付款金額不足' : null
     }
   })
 
@@ -324,8 +333,8 @@ async function handlePaymentReport(userId, message, replyToken) {
   let confirmMessage = ''
   
   if (enrollmentStatus === 'CANCELLED') {
-    // 金額不符的情況
-    confirmMessage = `❌ 付款金額不符！\n\n`
+    // 金額不足的情況
+    confirmMessage = `❌ 付款金額不足！\n\n`
     confirmMessage += `您的付款資訊：\n`
     if (paymentInfo.name) {
       confirmMessage += `姓名：${paymentInfo.name}\n`
@@ -339,11 +348,12 @@ async function handlePaymentReport(userId, message, replyToken) {
     confirmMessage += `\n課程資訊：\n`
     confirmMessage += `課程：${getCourseName(user.course)}\n`
     confirmMessage += `應付金額：${expectedPrice}\n\n`
-    confirmMessage += `⚠️ 由於付款金額不符，您的報名已被取消。\n`
+    confirmMessage += `⚠️ 由於付款金額不足，您的報名已被取消。\n`
     confirmMessage += `請重新匯款正確金額後再次回報付款資訊。\n\n`
     confirmMessage += `如有疑問，請聯繫客服。`
   } else {
-    // 金額正確的情況
+    // 付款成功的情況（包括多付）
+    const isOverpaid = paidNumber > expectedNumber
     confirmMessage = `✅ 付款資訊已收到！\n\n`
     if (paymentInfo.name) {
       confirmMessage += `姓名：${paymentInfo.name}\n`
@@ -360,7 +370,19 @@ async function handlePaymentReport(userId, message, replyToken) {
     confirmMessage += `\n課程資訊：\n`
     confirmMessage += `課程：${getCourseName(user.course)}\n`
     confirmMessage += `應付金額：${expectedPrice}\n\n`
-    confirmMessage += `我們會盡快確認您的付款，並在 24 小時內與您聯繫安排課程。\n\n感謝您的報名，祝您學習愉快！🎵`
+    
+    if (isOverpaid) {
+      const overAmount = paidNumber - expectedNumber
+      confirmMessage += `💰 付款確認：\n`
+      confirmMessage += `• 您已付款：${paymentInfo.amount}\n`
+      confirmMessage += `• 課程費用：${expectedPrice}\n`
+      confirmMessage += `• 超額付款：${overAmount} 元\n\n`
+      confirmMessage += `我們會盡快確認您的付款，並在 24 小時內與您聯繫安排課程。\n`
+      confirmMessage += `超額付款的部分，我們會在課程開始前退還給您。\n\n`
+      confirmMessage += `感謝您的報名，祝您學習愉快！🎵`
+    } else {
+      confirmMessage += `我們會盡快確認您的付款，並在 24 小時內與您聯繫安排課程。\n\n感謝您的報名，祝您學習愉快！🎵`
+    }
   }
 
   await safeReplyMessage(lineClientInstance, replyToken, confirmMessage)
