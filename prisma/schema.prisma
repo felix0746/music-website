@@ -47,8 +47,10 @@ model User {
 
 // vvv 新增的 Enum vvv
 enum PaymentStatus {
-  UNPAID // 尚未付款
-  PAID   // 已付款
+  UNPAID      // 尚未付款
+  PAID        // 已付款
+  PARTIAL     // 部分付款（少付）
+  PENDING     // 待補付
 }
 
 enum EnrollmentStatus {

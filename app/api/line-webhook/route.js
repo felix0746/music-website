@@ -299,19 +299,50 @@ async function handlePaymentReport(userId, message, replyToken) {
   let paymentStatus = 'PAID'
   let paymentNotes = paymentInfo.notes || ''
   
-  // 檢查金額是否正確
-  if (paidNumber < expectedNumber) {
-    // 金額不足，標記為取消
-    enrollmentStatus = 'CANCELLED'
-    paymentStatus = 'UNPAID'
-  } else if (paidNumber > expectedNumber) {
-    // 金額過多，接受付款但記錄超額
-    const overAmount = paidNumber - expectedNumber
-    paymentNotes = paymentNotes ? 
-      `${paymentNotes}\n[系統備註：超額付款 ${overAmount} 元，將安排退費]` : 
-      `[系統備註：超額付款 ${overAmount} 元，將安排退費]`
+  // 檢查是否為補付情況
+  const isSupplementPayment = user.paymentStatus === 'PARTIAL'
+  
+  if (isSupplementPayment) {
+    // 補付情況：計算累計金額
+    const previousAmount = user.paymentAmount ? parseInt(user.paymentAmount.replace(/[^\d]/g, '')) : 0
+    const totalPaid = previousAmount + paidNumber
+    
+    if (totalPaid < expectedNumber) {
+      // 補付後仍不足
+      const shortAmount = expectedNumber - totalPaid
+      paymentStatus = 'PARTIAL'
+      paymentNotes = `${user.paymentNotes || ''}\n[補付 ${paidNumber} 元，累計 ${totalPaid} 元，尚需補付 ${shortAmount} 元]`
+    } else if (totalPaid === expectedNumber) {
+      // 補付完成
+      paymentStatus = 'PAID'
+      paymentNotes = `${user.paymentNotes || ''}\n[補付 ${paidNumber} 元，累計 ${totalPaid} 元，付款完成]`
+    } else {
+      // 補付過多
+      const overAmount = totalPaid - expectedNumber
+      paymentStatus = 'PAID'
+      paymentNotes = `${user.paymentNotes || ''}\n[補付 ${paidNumber} 元，累計 ${totalPaid} 元，超額 ${overAmount} 元，將安排退費]`
+    }
+    
+    // 更新付款金額為累計金額
+    paymentInfo.amount = totalPaid.toString()
+  } else {
+    // 一般付款情況
+    if (paidNumber < expectedNumber) {
+      // 金額不足，標記為部分付款，不取消報名
+      const shortAmount = expectedNumber - paidNumber
+      paymentStatus = 'PARTIAL'
+      paymentNotes = paymentNotes ? 
+        `${paymentNotes}\n[系統備註：少付 ${shortAmount} 元，需要補付]` : 
+        `[系統備註：少付 ${shortAmount} 元，需要補付]`
+    } else if (paidNumber > expectedNumber) {
+      // 金額過多，接受付款但記錄超額
+      const overAmount = paidNumber - expectedNumber
+      paymentNotes = paymentNotes ? 
+        `${paymentNotes}\n[系統備註：超額付款 ${overAmount} 元，將安排退費]` : 
+        `[系統備註：超額付款 ${overAmount} 元，將安排退費]`
+    }
+    // 金額正確時，保持預設狀態
   }
-  // 金額正確時，保持預設狀態
   
   // 更新用戶付款狀態和詳細資訊
   await prismaInstance.user.update({
@@ -332,9 +363,10 @@ async function handlePaymentReport(userId, message, replyToken) {
   // 構建確認訊息
   let confirmMessage = ''
   
-  if (enrollmentStatus === 'CANCELLED') {
-    // 金額不足的情況
-    confirmMessage = `❌ 付款金額不足！\n\n`
+  if (paymentStatus === 'PARTIAL') {
+    // 部分付款的情況
+    const shortAmount = expectedNumber - paidNumber
+    confirmMessage = `⚠️ 部分付款已收到！\n\n`
     confirmMessage += `您的付款資訊：\n`
     if (paymentInfo.name) {
       confirmMessage += `姓名：${paymentInfo.name}\n`
@@ -348,8 +380,16 @@ async function handlePaymentReport(userId, message, replyToken) {
     confirmMessage += `\n課程資訊：\n`
     confirmMessage += `課程：${getCourseName(user.course)}\n`
     confirmMessage += `應付金額：${expectedPrice}\n\n`
-    confirmMessage += `⚠️ 由於付款金額不足，您的報名已被取消。\n`
-    confirmMessage += `請重新匯款正確金額後再次回報付款資訊。\n\n`
+    confirmMessage += `💰 付款狀況：\n`
+    confirmMessage += `• 您已付款：${paymentInfo.amount}\n`
+    confirmMessage += `• 課程費用：${expectedPrice}\n`
+    confirmMessage += `• 尚需補付：${shortAmount} 元\n\n`
+    confirmMessage += `📝 補付方式：\n`
+    confirmMessage += `請再次匯款 ${shortAmount} 元到以下帳戶：\n`
+    confirmMessage += `🏦 銀行：台灣銀行 (004)\n`
+    confirmMessage += `💳 帳號：1234567890123456\n`
+    confirmMessage += `👤 戶名：張文紹\n\n`
+    confirmMessage += `補付完成後，請再次回報付款資訊，我們會立即確認您的完整付款！\n\n`
     confirmMessage += `如有疑問，請聯繫客服。`
   } else {
     // 付款成功的情況（包括多付）

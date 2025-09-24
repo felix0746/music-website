@@ -55,6 +55,42 @@ export default function AdminPage() {
     }
   }
 
+  // 發送補付提醒的函式
+  const handleSendSupplementReminder = async (studentId) => {
+    const student = students.find(s => s.id === studentId)
+    if (!student) return
+
+    if (!confirm(`您確定要發送補付提醒給 ${student.name} 嗎？`)) {
+      return
+    }
+
+    try {
+      // 這裡可以整合 LINE API 發送提醒訊息
+      // 暫時使用 alert 顯示提醒內容
+      const expectedPrice = getCoursePrice(student.course)
+      const expectedNumber = parseInt(expectedPrice.replace(/[^\d]/g, ''))
+      const paidNumber = student.paymentAmount ? parseInt(student.paymentAmount.replace(/[^\d]/g, '')) : 0
+      const shortAmount = expectedNumber - paidNumber
+
+      const reminderMessage = `補付提醒已準備發送給 ${student.name}：
+
+課程：${getCourseName(student.course)}
+應付金額：${expectedPrice}
+已付金額：${student.paymentAmount || '0'}
+尚需補付：${shortAmount} 元
+
+提醒內容：
+請盡快補付剩餘金額 ${shortAmount} 元，以完成課程報名。
+
+注意：此功能需要整合 LINE API 才能實際發送訊息。`
+
+      alert(reminderMessage)
+    } catch (error) {
+      console.error("發送補付提醒失敗:", error)
+      alert('發送補付提醒時發生錯誤。')
+    }
+  }
+
   // 恢復報名的函式
   const handleRestoreEnrollment = async (studentId) => {
     const student = students.find(s => s.id === studentId)
@@ -240,6 +276,14 @@ export default function AdminPage() {
                       <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
                         已付款
                       </span>
+                    ) : student.paymentStatus === 'PARTIAL' ? (
+                      <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700 ring-1 ring-inset ring-yellow-600/20">
+                        部分付款
+                      </span>
+                    ) : student.paymentStatus === 'PENDING' ? (
+                      <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                        待補付
+                      </span>
                     ) : (
                       <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
                         尚未付款
@@ -316,6 +360,21 @@ export default function AdminPage() {
                           >
                             標記為已付款
                           </button>
+                        ) : student.paymentStatus === 'PARTIAL' ? (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleUpdateStatus(student.id, 'PAID')}
+                              className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                            >
+                              標記為已付款
+                            </button>
+                            <button
+                              onClick={() => handleSendSupplementReminder(student.id)}
+                              className="rounded bg-yellow-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-yellow-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-600"
+                            >
+                              發送補付提醒
+                            </button>
+                          </div>
                         ) : (
                           <button
                             onClick={() => handleUpdateStatus(student.id, 'UNPAID')}
