@@ -9,6 +9,17 @@ export default function AdminPage() {
   const [paymentFilter, setPaymentFilter] = useState('ALL')
   const [enrollmentFilter, setEnrollmentFilter] = useState('ALL')
   const [courseFilter, setCourseFilter] = useState('ALL')
+  
+  // 批量操作相關狀態
+  const [selectedStudents, setSelectedStudents] = useState([])
+  const [showBatchModal, setShowBatchModal] = useState(false)
+  const [batchOperation, setBatchOperation] = useState('')
+  const [batchMessage, setBatchMessage] = useState('')
+  const [batchTemplate, setBatchTemplate] = useState('')
+  
+  // 通知模板狀態
+  const [notificationTemplates, setNotificationTemplates] = useState({})
+  const [showNotificationModal, setShowNotificationModal] = useState(false)
 
   // 測試 LINE 連線的函式
   const testLineConnection = async () => {
@@ -45,7 +56,21 @@ export default function AdminPage() {
   // 頁面載入時執行一次
   useEffect(() => {
     fetchStudents()
+    fetchNotificationTemplates()
   }, [])
+
+  // 獲取通知模板
+  const fetchNotificationTemplates = async () => {
+    try {
+      const response = await fetch('/api/admin/notification-templates')
+      const result = await response.json()
+      if (result.success) {
+        setNotificationTemplates(result.templates)
+      }
+    } catch (error) {
+      console.error('獲取通知模板失敗:', error)
+    }
+  }
 
   // 更新學生付款狀態的函式
   const handleUpdateStatus = async (studentId, newStatus) => {
@@ -322,13 +347,148 @@ export default function AdminPage() {
     return paidNumber === expectedNumber
   }
 
+  // 批量操作函數
+  const handleBatchOperation = async () => {
+    if (!batchOperation) {
+      alert('請選擇操作類型')
+      return
+    }
+
+    if (selectedStudents.length === 0) {
+      alert('請選擇要操作的學員')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/batch-operations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          operation: batchOperation,
+          studentIds: selectedStudents,
+          updateData: { reason: batchMessage }
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        alert(`批量操作完成！\n成功：${result.summary.success} 個\n失敗：${result.summary.failed} 個`)
+        setShowBatchModal(false)
+        setSelectedStudents([])
+        fetchStudents() // 重新載入資料
+      } else {
+        alert(`操作失敗：${result.error}`)
+      }
+    } catch (error) {
+      console.error('批量操作失敗:', error)
+      alert('批量操作時發生錯誤')
+    }
+  }
+
+  // 批量發送訊息函數
+  const handleBatchSendMessage = async () => {
+    if (!batchMessage && !batchTemplate) {
+      alert('請輸入訊息內容或選擇模板')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/batch-send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentIds: selectedStudents,
+          message: batchMessage,
+          templateType: batchTemplate,
+          filters: {
+            paymentStatus: paymentFilter,
+            enrollmentStatus: enrollmentFilter,
+            course: courseFilter,
+            searchTerm: searchTerm
+          }
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        alert(`批量發送完成！\n成功：${result.summary.success} 個\n失敗：${result.summary.failed} 個`)
+        setShowNotificationModal(false)
+        setSelectedStudents([])
+        setBatchMessage('')
+        setBatchTemplate('')
+      } else {
+        alert(`發送失敗：${result.error}`)
+      }
+    } catch (error) {
+      console.error('批量發送失敗:', error)
+      alert('批量發送時發生錯誤')
+    }
+  }
+
+  // 匯出資料函數
+  const handleExportData = async (format) => {
+    try {
+      const response = await fetch('/api/admin/export-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          format: format,
+          filters: {
+            paymentStatus: paymentFilter,
+            enrollmentStatus: enrollmentFilter,
+            course: courseFilter,
+            searchTerm: searchTerm
+          }
+        })
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `學員資料_${new Date().toISOString().split('T')[0]}.${format}`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      } else {
+        const result = await response.json()
+        alert(`匯出失敗：${result.error}`)
+      }
+    } catch (error) {
+      console.error('匯出資料失敗:', error)
+      alert('匯出資料時發生錯誤')
+    }
+  }
+
+  // 選擇學員函數
+  const toggleStudentSelection = (studentId) => {
+    setSelectedStudents(prev => 
+      prev.includes(studentId) 
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    )
+  }
+
+  // 全選/取消全選函數
+  const toggleSelectAll = () => {
+    if (selectedStudents.length === filteredStudents.length) {
+      setSelectedStudents([])
+    } else {
+      setSelectedStudents(filteredStudents.map(s => s.id))
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
           學員管理後台
         </h1>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <button
             onClick={testLineConnection}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
@@ -338,6 +498,54 @@ export default function AdminPage() {
             </svg>
             測試 LINE
           </button>
+          
+          <button
+            onClick={() => setShowNotificationModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0-15 0v5h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0 15 0v5z" />
+            </svg>
+            批量通知
+          </button>
+          
+          <button
+            onClick={() => setShowBatchModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            批量操作
+          </button>
+          
+          <div className="relative">
+            <button
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              匯出資料
+            </button>
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 hidden group-hover:block">
+              <div className="py-1">
+                <button
+                  onClick={() => handleExportData('csv')}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  CSV 格式
+                </button>
+                <button
+                  onClick={() => handleExportData('json')}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  JSON 格式
+                </button>
+              </div>
+            </div>
+          </div>
+          
           <button
             onClick={fetchStudents}
             disabled={isLoading}
@@ -464,6 +672,14 @@ export default function AdminPage() {
           <table className="min-w-full divide-y divide-slate-200 text-left">
             <thead className="bg-slate-50">
               <tr>
+                <th className="px-6 py-3 text-sm font-semibold text-slate-900">
+                  <input
+                    type="checkbox"
+                    checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
+                    onChange={toggleSelectAll}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">姓名</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">課程</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">LINE 資訊</th>
@@ -478,6 +694,14 @@ export default function AdminPage() {
             <tbody className="divide-y divide-slate-200 bg-white">
               {filteredStudents?.map((student) => (
                 <tr key={student.id}>
+                  <td className="px-6 py-4 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={selectedStudents.includes(student.id)}
+                      onChange={() => toggleStudentSelection(student.id)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </td>
                   <td className="px-6 py-4 text-sm text-slate-700">{student.name}</td>
                   <td className="px-6 py-4 text-sm text-slate-700">
                     <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
@@ -717,6 +941,127 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* 批量操作模態框 */}
+      {showBatchModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">批量操作</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                操作類型
+              </label>
+              <select
+                value={batchOperation}
+                onChange={(e) => setBatchOperation(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">請選擇操作</option>
+                <option value="markAsPaid">標記為已付款</option>
+                <option value="markAsUnpaid">標記為未付款</option>
+                <option value="cancelEnrollment">取消報名</option>
+                <option value="restoreEnrollment">恢復報名</option>
+              </select>
+            </div>
+
+            {batchOperation === 'cancelEnrollment' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  取消原因
+                </label>
+                <input
+                  type="text"
+                  value={batchMessage}
+                  onChange={(e) => setBatchMessage(e.target.value)}
+                  placeholder="請輸入取消原因"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            )}
+
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
+                已選擇 {selectedStudents.length} 位學員
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleBatchOperation}
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              >
+                確認執行
+              </button>
+              <button
+                onClick={() => setShowBatchModal(false)}
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 批量通知模態框 */}
+      {showNotificationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+            <h3 className="text-lg font-semibold mb-4">批量發送通知</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                通知模板
+              </label>
+              <select
+                value={batchTemplate}
+                onChange={(e) => setBatchTemplate(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">請選擇模板</option>
+                {Object.entries(notificationTemplates).map(([key, template]) => (
+                  <option key={key} value={key}>{template.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                自訂訊息
+              </label>
+              <textarea
+                value={batchMessage}
+                onChange={(e) => setBatchMessage(e.target.value)}
+                placeholder="輸入自訂訊息內容..."
+                rows={4}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
+                已選擇 {selectedStudents.length} 位學員
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleBatchSendMessage}
+                className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
+              >
+                發送通知
+              </button>
+              <button
+                onClick={() => setShowNotificationModal(false)}
+                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+              >
+                取消
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
