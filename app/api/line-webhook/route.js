@@ -501,6 +501,36 @@ async function handleReEnrollment(userId, message, replyToken) {
         const prismaInstance = getPrisma()
         const lineClientInstance = getLineClient()
 
+        // 檢查用戶當前狀態
+        const currentUser = await prismaInstance.user.findUnique({
+          where: { lineUserId: userId }
+        })
+
+        if (!currentUser) {
+          await safeReplyMessage(lineClientInstance, replyToken, '❌ 找不到您的記錄，請聯繫客服。')
+          await prismaInstance.$disconnect()
+          return
+        }
+
+        // 檢查是否可以重新報名
+        if (currentUser.enrollmentStatus === 'ACTIVE') {
+          await safeReplyMessage(lineClientInstance, replyToken, `您目前已經有效報名了！
+
+您的當前報名資訊：
+• 姓名：${currentUser.name}
+• 課程：${getCourseName(currentUser.course)}
+• 付款狀態：${currentUser.paymentStatus === 'PAID' ? '已付款' : 
+                      currentUser.paymentStatus === 'PARTIAL' ? '部分付款' : 
+                      currentUser.paymentStatus === 'PENDING' ? '待補付' : '尚未付款'}
+
+如果您需要：
+• 更改課程：請先取消現有報名
+• 完成付款：請回報付款資訊
+• 其他問題：請聯繫客服`)
+          await prismaInstance.$disconnect()
+          return
+        }
+
         // 課程名稱對應
         const courseNames = {
           'singing': '歌唱課',
