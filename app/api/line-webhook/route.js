@@ -393,8 +393,8 @@ function parsePaymentMessage(message) {
     }
   }
   
-  // 提取金額（支援千分位逗號）
-  const amountMatch = message.match(/金額[：:]\s*(\d{1,3}(?:,\d{3})*)/)
+  // 提取金額（支援千分位逗號和純數字）
+  const amountMatch = message.match(/金額[：:]\s*(\d+(?:,\d{3})*)/)
   if (amountMatch) {
     result.amount = amountMatch[1]
   } else {
