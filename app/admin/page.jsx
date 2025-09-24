@@ -485,50 +485,63 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="flex justify-between items-center mb-8">
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-12">
+      {/* 手機版標題 */}
+      <div className="block sm:hidden mb-4">
+        <h1 className="text-xl font-bold text-slate-900 mb-2">學員管理後台</h1>
+        <div className="text-sm text-gray-600">
+          顯示 {filteredStudents?.length || 0} / {students?.length || 0} 位學員
+        </div>
+      </div>
+
+      {/* 桌面版標題 */}
+      <div className="hidden sm:flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
           學員管理後台
         </h1>
         <div className="flex gap-3 flex-wrap">
           <button
             onClick={testLineConnection}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            測試 LINE
+            <span className="hidden sm:inline">測試 LINE</span>
+            <span className="sm:hidden">LINE</span>
           </button>
           
           <button
             onClick={() => setShowNotificationModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0-15 0v5h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0 15 0v5z" />
             </svg>
-            批量通知
+            <span className="hidden sm:inline">批量通知</span>
+            <span className="sm:hidden">通知</span>
           </button>
           
           <button
             onClick={() => setShowBatchModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            批量操作
+            <span className="hidden sm:inline">批量操作</span>
+            <span className="sm:hidden">操作</span>
           </button>
           
-          <div className="relative">
+          <div className="relative group">
             <button
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              匯出資料
+              <span className="hidden sm:inline">匯出資料</span>
+              <span className="sm:hidden">匯出</span>
             </button>
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 hidden group-hover:block">
               <div className="py-1">
@@ -551,28 +564,107 @@ export default function AdminPage() {
           <button
             onClick={fetchStudents}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
           >
             {isLoading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                載入中...
+                <span className="hidden sm:inline">載入中...</span>
+                <span className="sm:hidden">載入</span>
               </>
             ) : (
               <>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                刷新資料
+                <span className="hidden sm:inline">刷新資料</span>
+                <span className="sm:hidden">刷新</span>
               </>
             )}
           </button>
         </div>
       </div>
+
+      {/* 手機版按鈕區域 */}
+      <div className="block sm:hidden mb-4">
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={testLineConnection}
+            className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            測試 LINE
+          </button>
+          
+          <button
+            onClick={() => setShowNotificationModal(true)}
+            className="flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0-15 0v5h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0 15 0v5z" />
+            </svg>
+            批量通知
+          </button>
+          
+          <button
+            onClick={() => setShowBatchModal(true)}
+            className="flex items-center justify-center gap-2 px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            批量操作
+          </button>
+          
+          <button
+            onClick={() => handleExportData('csv')}
+            className="flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            匯出 CSV
+          </button>
+        </div>
+        
+        <button
+          onClick={fetchStudents}
+          disabled={isLoading}
+          className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+        >
+          {isLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              載入中...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              刷新資料
+            </>
+          )}
+        </button>
+      </div>
       
       {/* 搜索和篩選區域 */}
-      <div className="mb-6 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
+        {/* 手機版：搜索框 */}
+        <div className="block sm:hidden">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="搜索學員姓名..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+          />
+        </div>
+
+        {/* 桌面版：完整篩選 */}
+        <div className="hidden sm:grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* 搜索框 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -640,6 +732,46 @@ export default function AdminPage() {
             </select>
           </div>
         </div>
+
+        {/* 手機版：篩選按鈕 */}
+        <div className="block sm:hidden">
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="ALL">全部付款狀態</option>
+              <option value="PAID">已付款</option>
+              <option value="UNPAID">尚未付款</option>
+              <option value="PARTIAL">部分付款</option>
+              <option value="PENDING">待補付</option>
+            </select>
+
+            <select
+              value={enrollmentFilter}
+              onChange={(e) => setEnrollmentFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="ALL">全部報名狀態</option>
+              <option value="ACTIVE">有效報名</option>
+              <option value="CANCELLED">已取消</option>
+              <option value="COMPLETED">已完成</option>
+            </select>
+          </div>
+          
+          <select
+            value={courseFilter}
+            onChange={(e) => setCourseFilter(e.target.value)}
+            className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          >
+            <option value="ALL">全部課程</option>
+            <option value="歌唱課">歌唱課</option>
+            <option value="吉他課">吉他課</option>
+            <option value="創作課">創作課</option>
+            <option value="春曲創作團班">春曲創作團班</option>
+          </select>
+        </div>
         
         {/* 清除篩選按鈕 */}
         <div className="flex justify-end">
@@ -657,21 +789,168 @@ export default function AdminPage() {
         </div>
         
         {/* 統計信息 */}
-        <div className="flex items-center justify-between text-sm text-gray-600">
-          <div>
-            顯示 {filteredStudents?.length || 0} / {students?.length || 0} 位學員
+        <div className="text-sm text-gray-600">
+          {/* 手機版統計 */}
+          <div className="block sm:hidden">
+            <div className="mb-2">
+              顯示 {filteredStudents?.length || 0} / {students?.length || 0} 位學員
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>已付款: {filteredStudents?.filter(s => s.paymentStatus === 'PAID').length || 0}</div>
+              <div>未付款: {filteredStudents?.filter(s => s.paymentStatus === 'UNPAID').length || 0}</div>
+              <div>部分付款: {filteredStudents?.filter(s => s.paymentStatus === 'PARTIAL').length || 0}</div>
+              <div>待補付: {filteredStudents?.filter(s => s.paymentStatus === 'PENDING').length || 0}</div>
+            </div>
           </div>
-          <div className="flex gap-4">
-            <span>已付款: {filteredStudents?.filter(s => s.paymentStatus === 'PAID').length || 0}</span>
-            <span>部分付款: {filteredStudents?.filter(s => s.paymentStatus === 'PARTIAL').length || 0}</span>
-            <span>尚未付款: {filteredStudents?.filter(s => s.paymentStatus === 'UNPAID').length || 0}</span>
+
+          {/* 桌面版統計 */}
+          <div className="hidden sm:flex items-center justify-between">
+            <div>
+              顯示 {filteredStudents?.length || 0} / {students?.length || 0} 位學員
+            </div>
+            <div className="flex gap-4">
+              <span>已付款: {filteredStudents?.filter(s => s.paymentStatus === 'PAID').length || 0}</span>
+              <span>未付款: {filteredStudents?.filter(s => s.paymentStatus === 'UNPAID').length || 0}</span>
+              <span>部分付款: {filteredStudents?.filter(s => s.paymentStatus === 'PARTIAL').length || 0}</span>
+              <span>待補付: {filteredStudents?.filter(s => s.paymentStatus === 'PENDING').length || 0}</span>
+            </div>
           </div>
         </div>
       </div>
       
-      {isLoading ? ( <p>正在載入學員資料...</p> ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200">
-          <table className="min-w-full divide-y divide-slate-200 text-left">
+      {isLoading ? ( 
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">正在載入學員資料...</p>
+        </div>
+      ) : (
+        <>
+          {/* 手機版：卡片式顯示 */}
+          <div className="block sm:hidden space-y-4">
+            {filteredStudents?.map((student) => (
+              <div key={student.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedStudents.includes(student.id)}
+                      onChange={() => toggleStudentSelection(student.id)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{student.name}</h3>
+                      <div className="text-sm text-gray-600">
+                        {getCourseName(student.course)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                      student.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' :
+                      student.paymentStatus === 'PARTIAL' ? 'bg-yellow-100 text-yellow-800' :
+                      student.paymentStatus === 'PENDING' ? 'bg-orange-100 text-orange-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {student.paymentStatus === 'PAID' ? '已付款' :
+                       student.paymentStatus === 'PARTIAL' ? '部分付款' :
+                       student.paymentStatus === 'PENDING' ? '待補付' : '尚未付款'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">報名狀態:</span>
+                    <span className={`font-medium ${
+                      student.enrollmentStatus === 'ACTIVE' ? 'text-green-600' :
+                      student.enrollmentStatus === 'CANCELLED' ? 'text-red-600' : 'text-gray-600'
+                    }`}>
+                      {student.enrollmentStatus === 'ACTIVE' ? '有效報名' :
+                       student.enrollmentStatus === 'CANCELLED' ? '已取消' : '已完成'}
+                    </span>
+                  </div>
+
+                  {student.lineUserId && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">LINE:</span>
+                      <span className="text-green-600 text-xs font-mono">
+                        {student.lineUserId?.substring(0, 8)}...
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">註冊日期:</span>
+                    <span className="text-gray-900">
+                      {new Date(student.createdAt).toLocaleDateString('zh-TW')}
+                    </span>
+                  </div>
+
+                  {student.paymentAmount && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">付款金額:</span>
+                      <span className="text-gray-900">NT$ {student.paymentAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {student.paymentStatus === 'PARTIAL' && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2">
+                      <div className="text-yellow-800 text-xs">
+                        <div>已付: NT$ {student.paymentAmount?.toLocaleString() || '0'}</div>
+                        <div>尚需補付: NT$ {calculateShortAmount(student)}</div>
+                        <div className="text-yellow-600 mt-1">⚠️ 需要補付</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {student.enrollmentStatus === 'CANCELLED' && (
+                    <button
+                      onClick={() => handleRestoreEnrollment(student.id)}
+                      className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors"
+                    >
+                      恢復報名
+                    </button>
+                  )}
+
+                  {student.paymentStatus === 'PARTIAL' && (
+                    <button
+                      onClick={() => handleSendSupplementReminder(student.id)}
+                      className="px-3 py-1 bg-yellow-600 text-white text-xs rounded-md hover:bg-yellow-700 transition-colors"
+                    >
+                      發送補付提醒
+                    </button>
+                  )}
+
+                  {student.enrollmentStatus === 'CANCELLED' && student.refundStatus === 'PENDING' && (
+                    <button
+                      onClick={() => handleProcessRefund(student.id)}
+                      className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors"
+                    >
+                      處理退款
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      const message = prompt('請輸入要發送的訊息:')
+                      if (message) {
+                        handleSendMessage(student.id, message)
+                      }
+                    }}
+                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    💬 聯繫
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* 桌面版：表格顯示 */}
+          <div className="hidden sm:block overflow-x-auto rounded-lg border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 text-left">
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">
@@ -943,13 +1222,14 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
 
       {/* 批量操作模態框 */}
       {showBatchModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">批量操作</h3>
             
             <div className="mb-4">
@@ -1010,8 +1290,8 @@ export default function AdminPage() {
 
       {/* 批量通知模態框 */}
       {showNotificationModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">批量發送通知</h3>
             
             <div className="mb-4">
