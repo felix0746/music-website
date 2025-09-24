@@ -20,10 +20,10 @@ export async function PATCH(request, { params }) {
     
     // 處理付款狀態更新
     if (updateData.paymentStatus) {
-      const validPaymentStatuses = ['UNPAID', 'PAID']
+      const validPaymentStatuses = ['UNPAID', 'PAID', 'PARTIAL', 'PENDING']
       if (!validPaymentStatuses.includes(updateData.paymentStatus)) {
         return Response.json(
-          { error: '無效的付款狀態，請使用 UNPAID 或 PAID' },
+          { error: '無效的付款狀態，請使用 UNPAID、PAID、PARTIAL 或 PENDING' },
           { status: 400 }
         )
       }

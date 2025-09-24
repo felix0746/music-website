@@ -518,12 +518,19 @@ async function handleReEnrollment(userId, message, replyToken) {
             name: name,
             course: course.toLowerCase(),
             enrollmentDate: new Date(),
+            enrollmentStatus: 'ACTIVE', // 重置報名狀態
             paymentStatus: 'UNPAID', // 重置付款狀態
             paymentReference: null,
             paymentAmount: null,
             paymentMethod: null,
             paymentDate: null,
-            paymentNotes: null
+            paymentNotes: null,
+            // 清除取消和退款相關資訊
+            cancellationDate: null,
+            cancellationReason: null,
+            refundStatus: 'NONE',
+            refundAmount: null,
+            refundDate: null
           }
         })
 
@@ -616,7 +623,10 @@ async function handleCancellation(userId, message, replyToken) {
   console.log('取消訊息內容:', message)
   
   // 檢查是否包含完整的取消資訊
-  if (message.includes('姓名：') && message.includes('課程：') && message.includes('取消原因：') && message.includes('退費需求：')) {
+  if ((message.includes('姓名：') || message.includes('姓名:')) && 
+      (message.includes('課程：') || message.includes('課程:')) && 
+      (message.includes('取消原因：') || message.includes('取消原因:')) && 
+      (message.includes('退費需求：') || message.includes('退費需求:'))) {
     console.log('✅ 包含完整取消資訊格式')
     // 解析取消資訊
     const lines = message.split(/\n|\r\n|\r/)
