@@ -10,6 +10,23 @@ export default function AdminPage() {
   const [enrollmentFilter, setEnrollmentFilter] = useState('ALL')
   const [courseFilter, setCourseFilter] = useState('ALL')
 
+  // 測試 LINE 連線的函式
+  const testLineConnection = async () => {
+    try {
+      const response = await fetch('/api/admin/test-line')
+      const result = await response.json()
+      
+      if (result.success) {
+        alert(`✅ LINE API 連線正常！\n\nToken 長度: ${result.details.tokenLength} 字元`)
+      } else {
+        alert(`❌ LINE API 連線失敗：\n\n${result.error}\n\n${result.details}`)
+      }
+    } catch (error) {
+      console.error('測試 LINE 連線失敗:', error)
+      alert('❌ 測試 LINE 連線時發生錯誤。')
+    }
+  }
+
   // 獲取學生資料的函式
   const fetchStudents = async () => {
     setIsLoading(true);
@@ -74,21 +91,25 @@ export default function AdminPage() {
     if (!message) return
 
     try {
-      // 這裡可以整合 LINE API 發送訊息
-      // 暫時顯示訊息內容
-      const messageInfo = `準備發送 LINE 訊息：
+      const response = await fetch('/api/admin/send-line-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          studentId: studentId, 
+          message: message 
+        })
+      })
 
-收件人：${student.name}
-LINE ID：${student.lineUserId}
-訊息內容：${message}
+      const result = await response.json()
 
-注意：此功能需要整合 LINE Messaging API 才能實際發送訊息。
-您可以使用 LINE ID 手動聯繫學員。`
-
-      alert(messageInfo)
+      if (response.ok) {
+        alert(`✅ 訊息已成功發送給 ${student.name}！`)
+      } else {
+        alert(`❌ 發送失敗：${result.error}`)
+      }
     } catch (error) {
       console.error("發送 LINE 訊息失敗:", error)
-      alert('發送 LINE 訊息時發生錯誤。')
+      alert('❌ 發送訊息時發生錯誤，請稍後再試。')
     }
   }
 
@@ -102,31 +123,45 @@ LINE ID：${student.lineUserId}
     }
 
     try {
-      // 這裡可以整合 LINE API 發送提醒訊息
-      // 暫時使用 alert 顯示提醒內容
       const expectedPrice = getCoursePrice(student.course)
       const expectedNumber = parseInt(expectedPrice.replace(/[^\d]/g, ''))
       const paidNumber = student.paymentAmount ? parseInt(student.paymentAmount.replace(/[^\d]/g, '')) : 0
       const shortAmount = expectedNumber - paidNumber
 
-      const reminderMessage = `補付提醒已準備發送給 ${student.name}：
+      const reminderMessage = `您好 ${student.name}，
+
+關於您的 ${getCourseName(student.course)} 報名：
 
 課程：${getCourseName(student.course)}
 應付金額：${expectedPrice}
 已付金額：${student.paymentAmount || '0'}
 尚需補付：${shortAmount} 元
 
-提醒內容：
 請盡快補付剩餘金額 ${shortAmount} 元，以完成課程報名。
 
-LINE ID：${student.lineUserId}
+如有任何問題，請隨時聯繫我們。
 
-注意：此功能需要整合 LINE API 才能實際發送訊息。`
+謝謝！`
 
-      alert(reminderMessage)
+      const response = await fetch('/api/admin/send-line-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          studentId: studentId, 
+          message: reminderMessage 
+        })
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        alert(`✅ 補付提醒已成功發送給 ${student.name}！`)
+      } else {
+        alert(`❌ 發送失敗：${result.error}`)
+      }
     } catch (error) {
       console.error("發送補付提醒失敗:", error)
-      alert('發送補付提醒時發生錯誤。')
+      alert('❌ 發送補付提醒時發生錯誤，請稍後再試。')
     }
   }
 
@@ -293,25 +328,36 @@ LINE ID：${student.lineUserId}
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
           學員管理後台
         </h1>
-        <button
-          onClick={fetchStudents}
-          disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {isLoading ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              載入中...
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              刷新資料
-            </>
-          )}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={testLineConnection}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            測試 LINE
+          </button>
+          <button
+            onClick={fetchStudents}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                載入中...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                刷新資料
+              </>
+            )}
+          </button>
+        </div>
       </div>
       
       {/* 搜索和篩選區域 */}
