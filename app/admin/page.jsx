@@ -233,6 +233,40 @@ export default function AdminPage() {
     }
   }
 
+  const handleProcessRefund = async (studentId) => {
+    const student = students.find(s => s.id === studentId)
+    if (!student) return
+
+    if (!confirm(`您確定要處理 ${student.name} 的退款嗎？\n\n這將把退款狀態從「待處理」改為「已退款」。`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/students/${studentId}/refund`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (!response.ok) {
+        throw new Error('退款處理失敗')
+      }
+
+      // 即時更新畫面上該學生的狀態
+      setStudents(students.map(s => 
+        s.id === studentId ? { 
+          ...s, 
+          refundStatus: 'COMPLETED',
+          refundDate: new Date().toISOString()
+        } : s
+      ))
+      
+      alert(`已成功處理 ${student.name} 的退款！`)
+    } catch (error) {
+      console.error("退款處理失敗:", error)
+      alert('退款處理時發生錯誤。')
+    }
+  }
+
   // 處理退款的函式
   const handleRefund = async (studentId, refundStatus) => {
     const student = students.find(s => s.id === studentId)
