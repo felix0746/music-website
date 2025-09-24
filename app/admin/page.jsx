@@ -164,11 +164,17 @@ export default function AdminPage() {
   // 獲取課程應付金額的函式
   const getCoursePrice = (courseCode) => {
     const coursePrices = {
+      // 英文代碼
       'singing': 'NT$ 3,000',
       'guitar': 'NT$ 4,000',
       'songwriting': 'NT$ 5,000',
       'band-workshop': 'NT$ 6,000',
-      'spring-composition-group': 'NT$ 6,000'
+      'spring-composition-group': 'NT$ 6,000',
+      // 中文名稱
+      '歌唱課': 'NT$ 3,000',
+      '吉他課': 'NT$ 4,000',
+      '創作課': 'NT$ 5,000',
+      '春曲創作團班': 'NT$ 6,000'
     }
     return coursePrices[courseCode] || 'NT$ 3,000'
   }
