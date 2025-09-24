@@ -1035,8 +1035,18 @@ export default function AdminPage() {
               <textarea
                 value={batchMessage}
                 onChange={(e) => setBatchMessage(e.target.value)}
-                placeholder="輸入自訂訊息內容..."
-                rows={4}
+                placeholder="輸入自訂訊息內容...
+
+可使用的變數：
+{name} - 學員姓名
+{course} - 課程名稱
+{amount} - 課程價格
+{paidAmount} - 已付金額
+{shortAmount} - 尚需補付金額
+{paymentTime} - 付款時間
+
+例如：親愛的 {name}，您的 {course} 將於 10/20 開始！"
+                rows={6}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

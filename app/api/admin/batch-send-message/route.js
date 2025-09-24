@@ -97,7 +97,10 @@ export async function POST(request) {
         let finalMessage = message
 
         // 如果使用模板，替換變數
-        if (templateType) {
+        if (templateType && !message) {
+          finalMessage = await processTemplate(templateType, student, message)
+        } else if (templateType && message) {
+          // 如果同時有模板和自訂內容，使用自訂內容但套用模板變數
           finalMessage = await processTemplate(templateType, student, message)
         }
 
@@ -150,44 +153,50 @@ export async function POST(request) {
 
 // 處理模板變數替換
 async function processTemplate(templateType, student, customMessage) {
+  // 如果有自訂內容，使用自訂內容並替換變數
+  if (customMessage) {
+    return replaceVariables(customMessage, student)
+  }
+
+  // 否則使用預設模板
   const templates = {
-    paymentReminder: `您好 ${student.name}，
+    paymentReminder: `您好 {name}，
 
-關於您的 ${getCourseName(student.course)} 報名：
+關於您的 {course} 報名：
 
-課程：${getCourseName(student.course)}
-應付金額：${getCoursePrice(student.course)}
-已付金額：${student.paymentAmount || '0'}
-尚需補付：${calculateShortAmount(student)} 元
+課程：{course}
+應付金額：{amount}
+已付金額：{paidAmount}
+尚需補付：{shortAmount} 元
 
-請盡快補付剩餘金額 ${calculateShortAmount(student)} 元，以完成課程報名。
+請盡快補付剩餘金額 {shortAmount} 元，以完成課程報名。
 
 如有任何問題，請隨時聯繫我們。
 
 謝謝！`,
-    courseStartReminder: `親愛的 ${student.name}，
+    courseStartReminder: `親愛的 {name}，
 
-您的 ${getCourseName(student.course)} 即將開始！
+您的 {course} 即將開始！
 
-課程：${getCourseName(student.course)}
+課程：{course}
 開始時間：請查看課程安排
 地點：請查看課程安排
 
 請準時參加，如有任何問題請聯繫我們。
 
 期待與您見面！`,
-    paymentConfirmation: `親愛的 ${student.name}，
+    paymentConfirmation: `親愛的 {name}，
 
 您的付款已確認！
 
-課程：${getCourseName(student.course)}
-付款金額：${student.paymentAmount || '0'}
-付款時間：${new Date().toLocaleString('zh-TW')}
+課程：{course}
+付款金額：{paidAmount}
+付款時間：{paymentTime}
 
 感謝您的報名，祝您學習愉快！`,
-    courseCancellation: `親愛的 ${student.name}，
+    courseCancellation: `親愛的 {name}，
 
-很遺憾地通知您，${getCourseName(student.course)} 因故取消。
+很遺憾地通知您，{course} 因故取消。
 
 取消原因：請聯繫我們了解詳情
 退費處理：我們會盡快處理退費事宜
@@ -197,7 +206,25 @@ async function processTemplate(templateType, student, customMessage) {
 謝謝您的理解！`
   }
 
-  return templates[templateType] || customMessage
+  const template = templates[templateType] || customMessage
+  return replaceVariables(template, student)
+}
+
+// 替換變數的函數
+function replaceVariables(message, student) {
+  const courseName = getCourseName(student.course)
+  const coursePrice = getCoursePrice(student.course)
+  const shortAmount = calculateShortAmount(student)
+  const paidAmount = student.paymentAmount || '0'
+  const paymentTime = new Date().toLocaleString('zh-TW')
+  
+  return message
+    .replace(/{name}/g, student.name || '學員')
+    .replace(/{course}/g, courseName)
+    .replace(/{amount}/g, coursePrice)
+    .replace(/{paidAmount}/g, paidAmount)
+    .replace(/{shortAmount}/g, shortAmount)
+    .replace(/{paymentTime}/g, paymentTime)
 }
 
 // 輔助函數
