@@ -585,70 +585,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* 手機版按鈕區域 */}
-      <div className="block sm:hidden mb-4">
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={testLineConnection}
-            className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            測試 LINE
-          </button>
-          
-          <button
-            onClick={() => setShowNotificationModal(true)}
-            className="flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0-15 0v5h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0 15 0v5z" />
-            </svg>
-            批量通知
-          </button>
-          
-          <button
-            onClick={() => setShowBatchModal(true)}
-            className="flex items-center justify-center gap-2 px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            批量操作
-          </button>
-          
-          <button
-            onClick={() => handleExportData('csv')}
-            className="flex items-center justify-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            匯出 CSV
-          </button>
-        </div>
-        
-        <button
-          onClick={fetchStudents}
-          disabled={isLoading}
-          className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-        >
-          {isLoading ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              載入中...
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              刷新資料
-            </>
-          )}
-        </button>
-      </div>
+      {/* 手機版按鈕區域 - 移除，改為底部固定導航 */}
       
       {/* 搜索和篩選區域 */}
       <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
@@ -1356,6 +1293,79 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* 手機版固定底部導航欄 */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40 sm:hidden">
+        <div className="grid grid-cols-5 gap-1 p-2">
+          <button
+            onClick={testLineConnection}
+            className="flex flex-col items-center justify-center py-2 px-1 text-xs text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+            title="測試 LINE"
+          >
+            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <span>LINE</span>
+          </button>
+
+          <button
+            onClick={() => setShowNotificationModal(true)}
+            className="flex flex-col items-center justify-center py-2 px-1 text-xs text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
+            title="批量通知"
+          >
+            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0-15 0v5h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0 15 0v5z" />
+            </svg>
+            <span>通知</span>
+          </button>
+
+          <button
+            onClick={() => setShowBatchModal(true)}
+            className="flex flex-col items-center justify-center py-2 px-1 text-xs text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-md transition-colors"
+            title="批量操作"
+          >
+            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span>操作</span>
+          </button>
+
+          <button
+            onClick={() => handleExportData('csv')}
+            className="flex flex-col items-center justify-center py-2 px-1 text-xs text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+            title="匯出資料"
+          >
+            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>匯出</span>
+          </button>
+
+          <button
+            onClick={fetchStudents}
+            disabled={isLoading}
+            className="flex flex-col items-center justify-center py-2 px-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="刷新資料"
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600 mb-1"></div>
+                <span>載入</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>刷新</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* 為底部導航欄預留空間 */}
+      <div className="h-20 sm:hidden"></div>
     </div>
   )
 }
