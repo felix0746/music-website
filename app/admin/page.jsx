@@ -59,6 +59,39 @@ export default function AdminPage() {
     }
   }
 
+  // 發送 LINE 訊息的函式
+  const handleSendLineMessage = async (studentId) => {
+    const student = students.find(s => s.id === studentId)
+    if (!student) return
+
+    if (!student.lineUserId) {
+      alert('此學員未連結 LINE，無法發送訊息。')
+      return
+    }
+
+    const message = prompt(`發送 LINE 訊息給 ${student.name}：`, `您好 ${student.name}，關於您的${getCourseName(student.course)}報名...`)
+    
+    if (!message) return
+
+    try {
+      // 這裡可以整合 LINE API 發送訊息
+      // 暫時顯示訊息內容
+      const messageInfo = `準備發送 LINE 訊息：
+
+收件人：${student.name}
+LINE ID：${student.lineUserId}
+訊息內容：${message}
+
+注意：此功能需要整合 LINE Messaging API 才能實際發送訊息。
+您可以使用 LINE ID 手動聯繫學員。`
+
+      alert(messageInfo)
+    } catch (error) {
+      console.error("發送 LINE 訊息失敗:", error)
+      alert('發送 LINE 訊息時發生錯誤。')
+    }
+  }
+
   // 發送補付提醒的函式
   const handleSendSupplementReminder = async (studentId) => {
     const student = students.find(s => s.id === studentId)
@@ -85,6 +118,8 @@ export default function AdminPage() {
 
 提醒內容：
 請盡快補付剩餘金額 ${shortAmount} 元，以完成課程報名。
+
+LINE ID：${student.lineUserId}
 
 注意：此功能需要整合 LINE API 才能實際發送訊息。`
 
@@ -385,6 +420,7 @@ export default function AdminPage() {
               <tr>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">姓名</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">課程</th>
+                <th className="px-6 py-3 text-sm font-semibold text-slate-900">LINE 資訊</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">註冊日期</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">報名狀態</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">付款狀態</th>
@@ -401,6 +437,29 @@ export default function AdminPage() {
                     <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
                       {getCourseName(student.course)}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-600">
+                    <div className="text-xs space-y-1">
+                      {student.lineUserId ? (
+                        <>
+                          <div className="font-medium text-green-700">已連結 LINE</div>
+                          <div className="text-slate-500 font-mono text-xs break-all">
+                            ID: {student.lineUserId.substring(0, 8)}...
+                          </div>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(student.lineUserId)
+                              alert('LINE ID 已複製到剪貼簿！')
+                            }}
+                            className="text-blue-600 hover:text-blue-800 underline text-xs"
+                          >
+                            複製完整 ID
+                          </button>
+                        </>
+                      ) : (
+                        <div className="text-slate-400">未連結</div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-500">{formatDateTime(student.createdAt)}</td>
                   <td className="px-6 py-4 text-sm">
@@ -534,67 +593,78 @@ export default function AdminPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm">
-                    <div className="flex gap-2">
-                      {student.enrollmentStatus === 'ACTIVE' ? (
-                        student.paymentStatus === 'UNPAID' ? (
-                          <button
-                            onClick={() => handleUpdateStatus(student.id, 'PAID')}
-                            className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                          >
-                            標記為已付款
-                          </button>
-                        ) : student.paymentStatus === 'PARTIAL' ? (
-                          <div className="flex gap-1">
+                    <div className="flex gap-2 flex-wrap">
+                      <div className="flex gap-1">
+                        {student.enrollmentStatus === 'ACTIVE' ? (
+                          student.paymentStatus === 'UNPAID' ? (
                             <button
                               onClick={() => handleUpdateStatus(student.id, 'PAID')}
                               className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                             >
                               標記為已付款
                             </button>
+                          ) : student.paymentStatus === 'PARTIAL' ? (
+                            <>
+                              <button
+                                onClick={() => handleUpdateStatus(student.id, 'PAID')}
+                                className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                              >
+                                標記為已付款
+                              </button>
+                              <button
+                                onClick={() => handleSendSupplementReminder(student.id)}
+                                className="rounded bg-yellow-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-yellow-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-600"
+                              >
+                                發送補付提醒
+                              </button>
+                            </>
+                          ) : (
                             <button
-                              onClick={() => handleSendSupplementReminder(student.id)}
-                              className="rounded bg-yellow-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-yellow-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-600"
+                              onClick={() => handleUpdateStatus(student.id, 'UNPAID')}
+                              className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                             >
-                              發送補付提醒
+                              標記為未付款
                             </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => handleUpdateStatus(student.id, 'UNPAID')}
-                            className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-                          >
-                            標記為未付款
-                          </button>
-                        )
-                      ) : student.enrollmentStatus === 'CANCELLED' ? (
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => handleRestoreEnrollment(student.id)}
-                            className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                          >
-                            恢復報名
-                          </button>
-                          {student.refundStatus === 'NONE' ? (
+                          )
+                        ) : student.enrollmentStatus === 'CANCELLED' ? (
+                          <>
                             <button
-                              onClick={() => handleRefund(student.id, 'PENDING')}
-                              className="rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                            >
-                              處理退款
-                            </button>
-                          ) : student.refundStatus === 'PENDING' ? (
-                            <button
-                              onClick={() => handleRefund(student.id, 'COMPLETED')}
+                              onClick={() => handleRestoreEnrollment(student.id)}
                               className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                             >
-                              完成退款
+                              恢復報名
                             </button>
-                          ) : (
-                            <span className="text-xs text-green-600 font-medium">已退款</span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400">-</span>
-                      )}
+                            {student.refundStatus === 'NONE' ? (
+                              <button
+                                onClick={() => handleRefund(student.id, 'PENDING')}
+                                className="rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                              >
+                                處理退款
+                              </button>
+                            ) : student.refundStatus === 'PENDING' ? (
+                              <button
+                                onClick={() => handleRefund(student.id, 'COMPLETED')}
+                                className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                              >
+                                完成退款
+                              </button>
+                            ) : (
+                              <span className="text-xs text-green-600 font-medium">已退款</span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
+                      </div>
+                      
+                      {/* 通用聯繫按鈕 */}
+                      <button
+                        onClick={() => handleSendLineMessage(student.id)}
+                        className="rounded bg-purple-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-purple-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600"
+                        title={`聯繫 ${student.name}`}
+                      >
+                        💬 聯繫
+                      </button>
                     </div>
                   </td>
                 </tr>
