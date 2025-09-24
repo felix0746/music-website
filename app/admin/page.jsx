@@ -267,6 +267,36 @@ export default function AdminPage() {
     }
   }
 
+  // 計算尚需補付金額的函式
+  const calculateShortAmount = (student) => {
+    const coursePrice = getCoursePrice(student.course)
+    const paidAmount = parseInt(student.paymentAmount) || 0
+    const shortAmount = coursePrice - paidAmount
+    return shortAmount > 0 ? shortAmount.toLocaleString() : '0'
+  }
+
+  // 發送訊息的函式
+  const handleSendMessage = async (studentId, message) => {
+    try {
+      const response = await fetch('/api/admin/send-line-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId, message })
+      })
+
+      const result = await response.json()
+      
+      if (response.ok) {
+        alert(`✅ 訊息已成功發送給 ${result.studentName}！`)
+      } else {
+        alert(`❌ 發送失敗：${result.error}`)
+      }
+    } catch (error) {
+      console.error('發送訊息失敗:', error)
+      alert('❌ 發送訊息時發生錯誤，請稍後再試。')
+    }
+  }
+
   // 處理退款的函式
   const handleRefund = async (studentId, refundStatus) => {
     const student = students.find(s => s.id === studentId)
