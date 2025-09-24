@@ -5,6 +5,10 @@ import { useState, useEffect } from 'react'
 export default function AdminPage() {
   const [students, setStudents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [paymentFilter, setPaymentFilter] = useState('ALL')
+  const [enrollmentFilter, setEnrollmentFilter] = useState('ALL')
+  const [courseFilter, setCourseFilter] = useState('ALL')
 
   // 獲取學生資料的函式
   const fetchStudents = async () => {
@@ -215,6 +219,28 @@ export default function AdminPage() {
     return coursePrices[courseCode] || 'NT$ 3,000'
   }
 
+  // 篩選學員的函式
+  const filteredStudents = students.filter(student => {
+    // 搜索條件（姓名）
+    const matchesSearch = searchTerm === '' || 
+      student.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    // 付款狀態篩選
+    const matchesPayment = paymentFilter === 'ALL' || 
+      student.paymentStatus === paymentFilter
+    
+    // 報名狀態篩選
+    const matchesEnrollment = enrollmentFilter === 'ALL' || 
+      student.enrollmentStatus === enrollmentFilter
+    
+    // 課程篩選
+    const matchesCourse = courseFilter === 'ALL' || 
+      student.course === courseFilter || 
+      getCourseName(student.course) === courseFilter
+    
+    return matchesSearch && matchesPayment && matchesEnrollment && matchesCourse
+  })
+
   // 檢查付款金額是否正確的函式
   const isPaymentAmountCorrect = (courseCode, paidAmount) => {
     if (!paidAmount) return null
@@ -231,6 +257,106 @@ export default function AdminPage() {
       <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-8">
         學員管理後台
       </h1>
+      
+      {/* 搜索和篩選區域 */}
+      <div className="mb-6 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* 搜索框 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              搜索學員姓名
+            </label>
+            <input
+              type="text"
+              placeholder="輸入學員姓名..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          
+          {/* 付款狀態篩選 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              付款狀態
+            </label>
+            <select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="ALL">全部</option>
+              <option value="PAID">已付款</option>
+              <option value="PARTIAL">部分付款</option>
+              <option value="PENDING">待補付</option>
+              <option value="UNPAID">尚未付款</option>
+            </select>
+          </div>
+          
+          {/* 報名狀態篩選 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              報名狀態
+            </label>
+            <select
+              value={enrollmentFilter}
+              onChange={(e) => setEnrollmentFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="ALL">全部</option>
+              <option value="ACTIVE">有效報名</option>
+              <option value="CANCELLED">已取消</option>
+              <option value="COMPLETED">已完成</option>
+            </select>
+          </div>
+          
+          {/* 課程篩選 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              課程類型
+            </label>
+            <select
+              value={courseFilter}
+              onChange={(e) => setCourseFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="ALL">全部課程</option>
+              <option value="歌唱課">歌唱課</option>
+              <option value="吉他課">吉他課</option>
+              <option value="創作課">創作課</option>
+              <option value="春曲創作團班">春曲創作團班</option>
+            </select>
+          </div>
+        </div>
+        
+        {/* 清除篩選按鈕 */}
+        <div className="flex justify-end">
+          <button
+            onClick={() => {
+              setSearchTerm('')
+              setPaymentFilter('ALL')
+              setEnrollmentFilter('ALL')
+              setCourseFilter('ALL')
+            }}
+            className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            清除篩選
+          </button>
+        </div>
+        
+        {/* 統計信息 */}
+        <div className="flex items-center justify-between text-sm text-gray-600">
+          <div>
+            顯示 {filteredStudents.length} / {students.length} 位學員
+          </div>
+          <div className="flex gap-4">
+            <span>已付款: {filteredStudents.filter(s => s.paymentStatus === 'PAID').length}</span>
+            <span>部分付款: {filteredStudents.filter(s => s.paymentStatus === 'PARTIAL').length}</span>
+            <span>尚未付款: {filteredStudents.filter(s => s.paymentStatus === 'UNPAID').length}</span>
+          </div>
+        </div>
+      </div>
+      
       {isLoading ? ( <p>正在載入學員資料...</p> ) : (
         <div className="overflow-x-auto rounded-lg border border-slate-200">
           <table className="min-w-full divide-y divide-slate-200 text-left">
@@ -247,7 +373,7 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
-              {students.map((student) => (
+              {filteredStudents.map((student) => (
                 <tr key={student.id}>
                   <td className="px-6 py-4 text-sm text-slate-700">{student.name}</td>
                   <td className="px-6 py-4 text-sm text-slate-700">
@@ -341,6 +467,42 @@ export default function AdminPage() {
                             備註: {student.paymentNotes}
                           </div>
                         )}
+                      </div>
+                    ) : student.paymentStatus === 'PARTIAL' ? (
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium text-yellow-700">部分付款</div>
+                        <div className="text-blue-600 font-medium">課程: {getCourseName(student.course)}</div>
+                        <div className="text-purple-600 font-medium">應付: {getCoursePrice(student.course)}</div>
+                        {student.paymentAmount && (
+                          <div className="font-medium text-orange-600">
+                            已付: {student.paymentAmount}
+                          </div>
+                        )}
+                        {(() => {
+                          const expectedPrice = getCoursePrice(student.course)
+                          const expectedNumber = parseInt(expectedPrice.replace(/[^\d]/g, ''))
+                          const paidNumber = student.paymentAmount ? parseInt(student.paymentAmount.replace(/[^\d]/g, '')) : 0
+                          const shortAmount = expectedNumber - paidNumber
+                          return shortAmount > 0 ? (
+                            <div className="font-medium text-red-600">
+                              尚需: {shortAmount} 元
+                            </div>
+                          ) : null
+                        })()}
+                        {student.paymentReference && (
+                          <div className="text-slate-600">後五碼: {student.paymentReference}</div>
+                        )}
+                        {student.paymentDate && (
+                          <div className="text-slate-500">時間: {formatDateTime(student.paymentDate)}</div>
+                        )}
+                        {student.paymentNotes && (
+                          <div className="text-slate-500 truncate max-w-32" title={student.paymentNotes}>
+                            備註: {student.paymentNotes}
+                          </div>
+                        )}
+                        <div className="mt-1 p-1 bg-yellow-50 rounded border border-yellow-200">
+                          <div className="text-yellow-800 font-medium">⚠️ 需要補付</div>
+                        </div>
                       </div>
                     ) : (
                       <div className="text-xs">
