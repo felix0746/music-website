@@ -59,15 +59,6 @@ export async function POST(request) {
       text: message
     })
 
-    // 記錄發送歷史（可選）
-    await prismaInstance.user.update({
-      where: { id: studentId },
-      data: {
-        lastMessageSent: new Date(),
-        lastMessageContent: message
-      }
-    })
-
     return Response.json({
       success: true,
       message: '訊息已成功發送',
