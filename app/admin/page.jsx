@@ -1095,6 +1095,11 @@ export default function AdminPage() {
     return new Date(isoString).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })
   }
 
+  // 格式化日期的函式（只顯示日期）
+  const formatDate = (isoString) => {
+    return new Date(isoString).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })
+  }
+
   // 課程代碼轉換為中文名稱的函式
   const getCourseName = (courseCode) => {
     const courseNames = {
@@ -1996,7 +2001,7 @@ export default function AdminPage() {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-500">{formatDateTime(student.createdAt)}</td>
+                  <td className="px-6 py-4 text-sm text-slate-500">{formatDate(student.createdAt)}</td>
                   <td className="px-6 py-4 text-sm">
                     {student.enrollmentStatus === 'ACTIVE' ? (
                       <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
