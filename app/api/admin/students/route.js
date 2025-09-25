@@ -6,11 +6,8 @@ export async function GET() {
   try {
     console.log('開始查詢學員資料...')
     
-    // 查詢所有未歸檔的使用者，依照 createdAt 降序排列
+    // 暫時查詢所有使用者，依照 createdAt 降序排列
     const students = await prisma.user.findMany({
-      where: {
-        archivedAt: null  // 只查詢未歸檔的學員
-      },
       orderBy: {
         createdAt: 'desc'
       }
