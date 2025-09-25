@@ -30,6 +30,17 @@ export default function AdminPage() {
   const [lastFetch, setLastFetch] = useState(null) // 上次抓取時間
   const [cacheExpiry] = useState(5 * 60 * 1000) // 5分鐘緩存過期時間
   
+  // 防抖搜索相關狀態
+  const [searchTimeout, setSearchTimeout] = useState(null)
+  const [isSearching, setIsSearching] = useState(false)
+  
+  // 載入狀態優化
+  const [loadingStates, setLoadingStates] = useState({
+    students: false,
+    search: false,
+    operations: new Set()
+  })
+  
 
   // 測試 LINE 連線的函式
   const testLineConnection = async () => {
@@ -89,6 +100,86 @@ export default function AdminPage() {
     localStorage.removeItem('admin-students-cache')
     localStorage.removeItem('admin-students-cache-time')
   }
+
+  // 防抖搜索函數
+  const handleSearchChange = (value) => {
+    setSearchTerm(value)
+    
+    // 清除之前的定時器
+    if (searchTimeout) {
+      clearTimeout(searchTimeout)
+    }
+    
+    // 如果搜索框為空，立即顯示所有結果
+    if (!value.trim()) {
+      setIsSearching(false)
+      return
+    }
+    
+    // 設置搜索中狀態
+    setIsSearching(true)
+    
+    // 設置新的定時器，800ms 後執行搜索
+    const timeout = setTimeout(() => {
+      setIsSearching(false)
+      invalidateCache() // 清理緩存，強制重新獲取
+      fetchStudents(true) // 強制刷新
+    }, 800)
+    
+    setSearchTimeout(timeout)
+  }
+
+  // 骨架屏組件
+  const SkeletonCard = () => (
+    <div className="animate-pulse">
+      <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+        <div className="flex justify-between items-start">
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-300 rounded w-24"></div>
+            <div className="h-3 bg-gray-200 rounded w-32"></div>
+          </div>
+          <div className="h-6 bg-gray-300 rounded-full w-16"></div>
+        </div>
+        <div className="space-y-2">
+          <div className="h-3 bg-gray-200 rounded w-40"></div>
+          <div className="h-3 bg-gray-200 rounded w-28"></div>
+        </div>
+        <div className="flex gap-2">
+          <div className="h-8 bg-gray-300 rounded w-20"></div>
+          <div className="h-8 bg-gray-300 rounded w-24"></div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const SkeletonTable = () => (
+    <div className="animate-pulse space-y-4">
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+          <div className="flex gap-4">
+            <div className="h-4 bg-gray-300 rounded w-20"></div>
+            <div className="h-4 bg-gray-300 rounded w-24"></div>
+            <div className="h-4 bg-gray-300 rounded w-16"></div>
+            <div className="h-4 bg-gray-300 rounded w-20"></div>
+          </div>
+        </div>
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="px-6 py-4 border-b border-gray-100 last:border-b-0">
+            <div className="flex gap-4 items-center">
+              <div className="h-4 bg-gray-200 rounded w-20"></div>
+              <div className="h-4 bg-gray-200 rounded w-24"></div>
+              <div className="h-4 bg-gray-200 rounded w-16"></div>
+              <div className="h-4 bg-gray-200 rounded w-20"></div>
+              <div className="flex gap-2 ml-auto">
+                <div className="h-6 bg-gray-200 rounded w-16"></div>
+                <div className="h-6 bg-gray-200 rounded w-20"></div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 
   // 從 localStorage 加載緩存數據
   useEffect(() => {
@@ -788,13 +879,23 @@ export default function AdminPage() {
       <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
         {/* 手機版：搜索框 */}
         <div className="block sm:hidden">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="搜索學員姓名..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="搜索學員姓名..."
+              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+            />
+            {isSearching && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <svg className="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 桌面版：完整篩選 */}
@@ -804,13 +905,23 @@ export default function AdminPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               搜索學員姓名
             </label>
-            <input
-              type="text"
-              placeholder="輸入學員姓名..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="輸入學員姓名..."
+                value={searchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {isSearching && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <svg className="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              )}
+            </div>
           </div>
           
           {/* 付款狀態篩選 */}
