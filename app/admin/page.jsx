@@ -21,6 +21,10 @@ export default function AdminPage() {
   const [notificationTemplates, setNotificationTemplates] = useState({})
   const [showNotificationModal, setShowNotificationModal] = useState(false)
   
+  // 防止重複發送訊息的狀態
+  const [sendingMessages, setSendingMessages] = useState(new Set()) // 追蹤正在發送的訊息
+  const [batchSending, setBatchSending] = useState(false) // 批量發送狀態
+  
 
   // 測試 LINE 連線的函式
   const testLineConnection = async () => {
@@ -142,12 +146,20 @@ export default function AdminPage() {
 
   // 發送補付提醒的函式
   const handleSendSupplementReminder = async (studentId) => {
+    // 防止重複發送
+    if (sendingMessages.has(studentId)) {
+      return
+    }
+
     const student = students.find(s => s.id === studentId)
     if (!student) return
 
     if (!confirm(`您確定要發送補付提醒給 ${student.name} 嗎？`)) {
       return
     }
+
+    // 添加到發送中列表
+    setSendingMessages(prev => new Set([...prev, studentId]))
 
     try {
       const expectedPrice = getCoursePrice(student.course)
@@ -189,6 +201,13 @@ export default function AdminPage() {
     } catch (error) {
       console.error("發送補付提醒失敗:", error)
       alert('❌ 發送補付提醒時發生錯誤，請稍後再試。')
+    } finally {
+      // 從發送中列表移除
+      setSendingMessages(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(studentId)
+        return newSet
+      })
     }
   }
 
@@ -277,6 +296,14 @@ export default function AdminPage() {
 
   // 發送訊息的函式
   const handleSendMessage = async (studentId, message) => {
+    // 防止重複發送
+    if (sendingMessages.has(studentId)) {
+      return
+    }
+
+    // 添加到發送中列表
+    setSendingMessages(prev => new Set([...prev, studentId]))
+
     try {
       const response = await fetch('/api/admin/send-line-message', {
         method: 'POST',
@@ -294,6 +321,13 @@ export default function AdminPage() {
     } catch (error) {
       console.error('發送訊息失敗:', error)
       alert('❌ 發送訊息時發生錯誤，請稍後再試。')
+    } finally {
+      // 從發送中列表移除
+      setSendingMessages(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(studentId)
+        return newSet
+      })
     }
   }
 
@@ -454,10 +488,18 @@ export default function AdminPage() {
 
   // 批量發送訊息函數
   const handleBatchSendMessage = async () => {
+    // 防止重複發送
+    if (batchSending) {
+      return
+    }
+
     if (!batchMessage && !batchTemplate) {
       alert('請輸入訊息內容或選擇模板')
       return
     }
+
+    // 設置批量發送狀態
+    setBatchSending(true)
 
     try {
       const response = await fetch('/api/admin/batch-send-message', {
@@ -490,6 +532,9 @@ export default function AdminPage() {
     } catch (error) {
       console.error('批量發送失敗:', error)
       alert('批量發送時發生錯誤')
+    } finally {
+      // 重置批量發送狀態
+      setBatchSending(false)
     }
   }
 
@@ -918,9 +963,14 @@ export default function AdminPage() {
                   {student.paymentStatus === 'PARTIAL' && (
                     <button
                       onClick={() => handleSendSupplementReminder(student.id)}
-                      className="px-3 py-1 bg-yellow-600 text-white text-xs rounded-md hover:bg-yellow-700 transition-colors"
+                      disabled={sendingMessages.has(student.id)}
+                      className={`px-3 py-1 text-white text-xs rounded-md transition-colors ${
+                        sendingMessages.has(student.id)
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : 'bg-yellow-600 hover:bg-yellow-700'
+                      }`}
                     >
-                      發送補付提醒
+                      {sendingMessages.has(student.id) ? '發送中...' : '發送補付提醒'}
                     </button>
                   )}
 
@@ -1165,9 +1215,14 @@ export default function AdminPage() {
                               </button>
                               <button
                                 onClick={() => handleSendSupplementReminder(student.id)}
-                                className="rounded bg-yellow-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-yellow-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-600"
+                                disabled={sendingMessages.has(student.id)}
+                                className={`rounded px-2 py-1 text-xs font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                                  sendingMessages.has(student.id)
+                                    ? 'bg-gray-400 cursor-not-allowed focus-visible:outline-gray-400'
+                                    : 'bg-yellow-600 hover:bg-yellow-500 focus-visible:outline-yellow-600'
+                                }`}
                               >
-                                發送補付提醒
+                                {sendingMessages.has(student.id) ? '發送中...' : '發送補付提醒'}
                               </button>
                             </>
                           ) : (
@@ -1343,9 +1398,14 @@ export default function AdminPage() {
             <div className="flex gap-3">
               <button
                 onClick={handleBatchSendMessage}
-                className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
+                disabled={batchSending}
+                className={`flex-1 px-4 py-2 rounded-md transition-colors ${
+                  batchSending
+                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}
               >
-                發送通知
+                {batchSending ? '發送中...' : '發送通知'}
               </button>
               <button
                 onClick={() => setShowNotificationModal(false)}
