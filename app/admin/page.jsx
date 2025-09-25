@@ -2119,7 +2119,11 @@ export default function AdminPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm">
-                    {student.paymentStatus === 'PAID' ? (
+                    {student.refundStatus === 'COMPLETED' ? (
+                      <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
+                        已退款
+                      </span>
+                    ) : student.paymentStatus === 'PAID' ? (
                       <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
                         已付款
                       </span>
@@ -2157,7 +2161,57 @@ export default function AdminPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-600">
-                    {student.paymentStatus === 'PAID' ? (
+                    {student.refundStatus === 'COMPLETED' ? (
+                      <div className="space-y-2">
+                        {/* 已退款的基本資訊 */}
+                        <div className="flex items-center gap-2 text-xs flex-wrap">
+                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-800">
+                            💰 已退款
+                          </span>
+                          <span className="text-blue-600 font-medium">{getCourseName(student.course)}</span>
+                          <span className="text-purple-600 font-medium">{getCoursePrice(student.course)}</span>
+                          {student.paymentReference && (
+                            <span className="text-gray-600">後五碼: {student.paymentReference}</span>
+                          )}
+                        </div>
+                        
+                        {/* 可展開的詳細資訊 */}
+                        <details className="group">
+                          <summary className="text-xs text-blue-600 cursor-pointer hover:text-blue-800 flex items-center gap-1 w-fit">
+                            <span>展開詳情</span>
+                            <svg className="w-3 h-3 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </summary>
+                          <div className="mt-2 space-y-1 pl-2 border-l-2 border-red-200">
+                            {student.paymentAmount && (
+                              <div className="text-xs">
+                                <span className="text-gray-600">原付款:</span>
+                                <span className="ml-1 font-medium text-gray-600 line-through">{student.paymentAmount}</span>
+                              </div>
+                            )}
+                            {student.paymentDate && (
+                              <div className="text-xs text-gray-500">
+                                付款時間: {formatDateTime(student.paymentDate)}
+                              </div>
+                            )}
+                            <div className="text-xs text-red-800 font-medium">
+                              💰 已辦理退款
+                            </div>
+                            {student.paymentNotes && (
+                              <div className="text-xs">
+                                <span className="text-gray-600">備註:</span>
+                                <div className="mt-1 p-2 bg-red-50 rounded border text-gray-700 max-w-80">
+                                  <div className="whitespace-pre-wrap leading-relaxed text-xs">
+                                    {student.paymentNotes}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </details>
+                      </div>
+                    ) : student.paymentStatus === 'PAID' ? (
                       <div className="space-y-2">
                         {/* 簡潔的基本資訊 - 全部在一行 */}
                         <div className="flex items-center gap-2 text-xs flex-wrap">
