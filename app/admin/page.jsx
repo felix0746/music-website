@@ -572,7 +572,13 @@ export default function AdminPage() {
 
     // 課程統計
     const courseStats = students.reduce((acc, s) => {
-      const course = s.course || '未指定'
+      // 統一課程名稱顯示
+      let course = s.course || '未指定'
+      if (course === 'singing') course = '歌唱課'
+      else if (course === 'guitar') course = '吉他課'
+      else if (course === 'songwriting') course = '創作課'
+      else if (course === 'band-workshop' || course === 'spring-composition-group') course = '春曲創作團班'
+      
       if (!acc[course]) {
         acc[course] = { total: 0, paid: 0, active: 0 }
       }
