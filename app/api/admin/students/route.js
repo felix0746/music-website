@@ -1,94 +1,30 @@
-import { prisma } from '../../../../lib/prisma'
+import { PrismaClient } from '@prisma/client'
 
-export async function GET(request) {
+const prisma = new PrismaClient()
+
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const search = searchParams.get('search') || ''
-    const paymentStatus = searchParams.get('paymentStatus')
-    const enrollmentStatus = searchParams.get('enrollmentStatus')
-    const course = searchParams.get('course')
-
-    // 構建查詢條件
-    const where = {}
+    console.log('開始查詢學員資料...')
     
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { lineUserId: { contains: search, mode: 'insensitive' } }
-      ]
-    }
-    
-    if (paymentStatus && paymentStatus !== 'ALL') {
-      where.paymentStatus = paymentStatus
-    }
-    
-    if (enrollmentStatus && enrollmentStatus !== 'ALL') {
-      where.enrollmentStatus = enrollmentStatus
-    }
-    
-    if (course && course !== 'ALL') {
-      where.course = course
-    }
-
-    // 並行查詢：資料和總數
-    const [students, totalCount] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        orderBy: {
-          createdAt: 'desc'
-        },
-        skip: (page - 1) * limit,
-        take: limit,
-        // 只選擇需要的欄位，減少資料傳輸
-        select: {
-          id: true,
-          lineUserId: true,
-          name: true,
-          email: true,
-          course: true,
-          createdAt: true,
-          paymentStatus: true,
-          paymentAmount: true,
-          paymentDate: true,
-          paymentNotes: true,
-          enrollmentStatus: true,
-          enrollmentDate: true,
-          cancellationDate: true,
-          cancellationReason: true,
-          refundStatus: true,
-          refundAmount: true,
-          refundDate: true
-        }
-      }),
-      prisma.user.count({ where })
-    ])
-
-    const totalPages = Math.ceil(totalCount / limit)
-    
-    return Response.json({
-      students,
-      pagination: {
-        page,
-        limit,
-        totalCount,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1
+    // 簡化版本 - 查詢所有使用者，依照 createdAt 降序排列
+    const students = await prisma.user.findMany({
+      orderBy: {
+        createdAt: 'desc'
       }
     })
+
+    console.log('查詢結果:', students.length, '位學員')
+    
+    return Response.json(students)
   } catch (error) {
     console.error('獲取學員資料時發生錯誤:', error)
+    console.error('錯誤詳情:', error.message)
     
     return Response.json(
-      { 
-        error: '資料庫查詢失敗', 
-        details: error.message,
-        timestamp: new Date().toISOString()
-      },
+      { error: '資料庫連接失敗', details: error.message },
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }
