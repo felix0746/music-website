@@ -216,7 +216,7 @@ async function handleNewUser(userId, message, replyToken) {
 
 🏦 銀行：台灣銀行 (004)
 💳 帳號：1234567890123456
-👤 戶名：張文紹
+👤 戶名：蘇文紹
 💰 金額：${coursePrice}
 
 📝 重要提醒：
@@ -408,7 +408,7 @@ async function handlePaymentReport(userId, message, replyToken) {
     confirmMessage += `請再次匯款 ${shortAmount} 元到以下帳戶：\n`
     confirmMessage += `🏦 銀行：台灣銀行 (004)\n`
     confirmMessage += `💳 帳號：1234567890123456\n`
-    confirmMessage += `👤 戶名：張文紹\n\n`
+    confirmMessage += `👤 戶名：蘇文紹\n\n`
     confirmMessage += `補付完成後，請再次回報付款資訊，我們會立即確認您的完整付款！\n\n`
     confirmMessage += `如有疑問，請聯繫客服。`
   } else {
@@ -679,7 +679,7 @@ async function handleReEnrollment(userId, message, replyToken) {
 
 🏦 銀行：台灣銀行 (004)
 💳 帳號：1234567890123456
-👤 戶名：張文紹
+👤 戶名：蘇文紹
 💰 金額：${coursePrice}
 
 📝 重要提醒：

@@ -71,7 +71,7 @@ export async function POST(request) {
 
 🏦 銀行：台灣銀行 (004)
 💳 帳號：1234567890123456
-👤 戶名：張文紹
+👤 戶名：蘇文紹
 💰 金額：${coursePrice}
 
 📝 重要提醒：
