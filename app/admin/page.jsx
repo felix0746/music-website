@@ -81,7 +81,22 @@ export default function AdminPage() {
     paymentStats: {},
     monthlyTrends: []
   })
-  
+
+  // 手機版卡片展開狀態
+  const [expandedCards, setExpandedCards] = useState(new Set())
+
+  // 切換卡片展開狀態
+  const toggleCardExpansion = (studentId) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(studentId)) {
+        newSet.delete(studentId)
+      } else {
+        newSet.add(studentId)
+      }
+      return newSet
+    })
+  }
 
   // 測試 LINE 連線的函式
   const testLineConnection = async () => {
@@ -1633,130 +1648,230 @@ export default function AdminPage() {
         <>
           {/* 手機版：卡片式顯示 */}
           <div className="block sm:hidden space-y-4">
-            {filteredStudents?.map((student) => (
-              <div key={student.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedStudents.includes(student.id)}
-                      onChange={() => toggleStudentSelection(student.id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{student.name}</h3>
-                      <div className="text-sm text-gray-600">
-                        {getCourseName(student.course)}
+            {filteredStudents?.map((student) => {
+              const isExpanded = expandedCards.has(student.id)
+              
+              return (
+                <div key={student.id} className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                  {/* 卡片標題區域 - 始終顯示 */}
+                  <div className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents.includes(student.id)}
+                          onChange={() => toggleStudentSelection(student.id)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{student.name}</h3>
+                          <div className="text-sm text-gray-600">
+                            {getCourseName(student.course)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                          student.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' :
+                          student.paymentStatus === 'PARTIAL' ? 'bg-yellow-100 text-yellow-800' :
+                          student.paymentStatus === 'PENDING' ? 'bg-orange-100 text-orange-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {student.paymentStatus === 'PAID' ? '已付款' :
+                           student.paymentStatus === 'PARTIAL' ? '部分付款' :
+                           student.paymentStatus === 'PENDING' ? '待補付' : '尚未付款'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 基本資訊 - 始終顯示 */}
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">報名狀態:</span>
+                        <span className={`font-medium ${
+                          student.enrollmentStatus === 'ACTIVE' ? 'text-green-600' :
+                          student.enrollmentStatus === 'CANCELLED' ? 'text-red-600' : 'text-gray-600'
+                        }`}>
+                          {student.enrollmentStatus === 'ACTIVE' ? '有效報名' :
+                           student.enrollmentStatus === 'CANCELLED' ? '已取消' : '已完成'}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">註冊日期:</span>
+                        <span className="text-gray-900">
+                          {new Date(student.createdAt).toLocaleDateString('zh-TW')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 展開/收起按鈕 */}
+                    <div className="mt-3 flex justify-center">
+                      <button
+                        onClick={() => toggleCardExpansion(student.id)}
+                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        <span>{isExpanded ? '收起詳細資訊' : '展開詳細資訊'}</span>
+                        <svg 
+                          className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 詳細資訊 - 可摺疊 */}
+                  <div className={`transition-all duration-300 overflow-hidden ${
+                    isExpanded ? 'max-h-none opacity-100' : 'max-h-0 opacity-0'
+                  }`}>
+                    <div className="px-4 pb-4 border-t border-gray-100">
+                      <div className="pt-4 space-y-3 text-sm">
+                        {/* LINE 資訊 */}
+                        {student.lineUserId && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">LINE ID:</span>
+                            <div className="text-right">
+                              <div className="text-green-600 text-xs font-mono">
+                                {student.lineUserId?.substring(0, 12)}...
+                              </div>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(student.lineUserId)
+                                  alert('LINE ID 已複製到剪貼簿')
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                複製
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Email 資訊 */}
+                        {student.email && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Email:</span>
+                            <div className="text-right">
+                              <div className="text-gray-900 text-xs break-all">
+                                {student.email}
+                              </div>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(student.email)
+                                  alert('Email 已複製到剪貼簿')
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                複製
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 付款金額 */}
+                        {student.paymentAmount && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">付款金額:</span>
+                            <span className="text-gray-900">NT$ {student.paymentAmount.toLocaleString()}</span>
+                          </div>
+                        )}
+
+                        {/* 退款狀態 */}
+                        {student.refundStatus && student.refundStatus !== 'NONE' && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">退款狀態:</span>
+                            <span className={`font-medium ${
+                              student.refundStatus === 'PENDING' ? 'text-yellow-600' :
+                              student.refundStatus === 'COMPLETED' ? 'text-green-600' :
+                              student.refundStatus === 'REJECTED' ? 'text-red-600' : 'text-gray-600'
+                            }`}>
+                              {student.refundStatus === 'PENDING' ? '處理中' :
+                               student.refundStatus === 'COMPLETED' ? '已完成' :
+                               student.refundStatus === 'REJECTED' ? '已拒絕' : student.refundStatus}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* 付款備註 */}
+                        {student.paymentNotes && (
+                          <div>
+                            <span className="text-gray-600 text-sm">付款備註:</span>
+                            <div className="mt-1 p-2 bg-gray-50 rounded text-xs text-gray-700">
+                              {student.paymentNotes}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 部分付款詳細資訊 */}
+                        {student.paymentStatus === 'PARTIAL' && (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                            <div className="text-yellow-800 text-xs">
+                              <div className="font-medium mb-1">💰 付款詳情</div>
+                              <div>已付: NT$ {student.paymentAmount?.toLocaleString() || '0'}</div>
+                              <div>尚需補付: NT$ {calculateShortAmount(student)}</div>
+                              <div className="text-yellow-600 mt-1">⚠️ 需要補付</div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 操作按鈕 */}
+                        <div className="pt-3 border-t border-gray-100">
+                          <div className="flex flex-wrap gap-2">
+                            {student.enrollmentStatus === 'CANCELLED' && (
+                              <button
+                                onClick={() => handleRestoreEnrollment(student.id)}
+                                className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors"
+                              >
+                                恢復報名
+                              </button>
+                            )}
+
+                            {student.paymentStatus === 'PARTIAL' && (
+                              <button
+                                onClick={() => handleSendSupplementReminder(student.id)}
+                                disabled={sendingMessages.has(student.id)}
+                                className={`px-3 py-1 text-white text-xs rounded-md transition-colors ${
+                                  sendingMessages.has(student.id)
+                                    ? 'bg-gray-400 cursor-not-allowed'
+                                    : 'bg-yellow-600 hover:bg-yellow-700'
+                                }`}
+                              >
+                                {sendingMessages.has(student.id) ? '發送中...' : '發送補付提醒'}
+                              </button>
+                            )}
+
+                            {student.enrollmentStatus === 'CANCELLED' && student.refundStatus === 'PENDING' && (
+                              <button
+                                onClick={() => handleProcessRefund(student.id)}
+                                className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors"
+                              >
+                                處理退款
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => {
+                                const message = prompt('請輸入要發送的訊息:')
+                                if (message) {
+                                  handleSendMessage(student.id, message)
+                                }
+                              }}
+                              className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
+                            >
+                              💬 聯繫
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                      student.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' :
-                      student.paymentStatus === 'PARTIAL' ? 'bg-yellow-100 text-yellow-800' :
-                      student.paymentStatus === 'PENDING' ? 'bg-orange-100 text-orange-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {student.paymentStatus === 'PAID' ? '已付款' :
-                       student.paymentStatus === 'PARTIAL' ? '部分付款' :
-                       student.paymentStatus === 'PENDING' ? '待補付' : '尚未付款'}
-                    </div>
-                  </div>
                 </div>
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">報名狀態:</span>
-                    <span className={`font-medium ${
-                      student.enrollmentStatus === 'ACTIVE' ? 'text-green-600' :
-                      student.enrollmentStatus === 'CANCELLED' ? 'text-red-600' : 'text-gray-600'
-                    }`}>
-                      {student.enrollmentStatus === 'ACTIVE' ? '有效報名' :
-                       student.enrollmentStatus === 'CANCELLED' ? '已取消' : '已完成'}
-                    </span>
-                  </div>
-
-                  {student.lineUserId && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">LINE:</span>
-                      <span className="text-green-600 text-xs font-mono">
-                        {student.lineUserId?.substring(0, 8)}...
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">註冊日期:</span>
-                    <span className="text-gray-900">
-                      {new Date(student.createdAt).toLocaleDateString('zh-TW')}
-                    </span>
-                  </div>
-
-                  {student.paymentAmount && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">付款金額:</span>
-                      <span className="text-gray-900">NT$ {student.paymentAmount.toLocaleString()}</span>
-                    </div>
-                  )}
-
-                  {student.paymentStatus === 'PARTIAL' && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2">
-                      <div className="text-yellow-800 text-xs">
-                        <div>已付: NT$ {student.paymentAmount?.toLocaleString() || '0'}</div>
-                        <div>尚需補付: NT$ {calculateShortAmount(student)}</div>
-                        <div className="text-yellow-600 mt-1">⚠️ 需要補付</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {student.enrollmentStatus === 'CANCELLED' && (
-                    <button
-                      onClick={() => handleRestoreEnrollment(student.id)}
-                      className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors"
-                    >
-                      恢復報名
-                    </button>
-                  )}
-
-                  {student.paymentStatus === 'PARTIAL' && (
-                    <button
-                      onClick={() => handleSendSupplementReminder(student.id)}
-                      disabled={sendingMessages.has(student.id)}
-                      className={`px-3 py-1 text-white text-xs rounded-md transition-colors ${
-                        sendingMessages.has(student.id)
-                          ? 'bg-gray-400 cursor-not-allowed'
-                          : 'bg-yellow-600 hover:bg-yellow-700'
-                      }`}
-                    >
-                      {sendingMessages.has(student.id) ? '發送中...' : '發送補付提醒'}
-                    </button>
-                  )}
-
-                  {student.enrollmentStatus === 'CANCELLED' && student.refundStatus === 'PENDING' && (
-                    <button
-                      onClick={() => handleProcessRefund(student.id)}
-                      className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors"
-                    >
-                      處理退款
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => {
-                      const message = prompt('請輸入要發送的訊息:')
-                      if (message) {
-                        handleSendMessage(student.id, message)
-                      }
-                    }}
-                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
-                  >
-                    💬 聯繫
-                  </button>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* 桌面版：表格顯示 */}
