@@ -999,8 +999,9 @@ export default function AdminPage() {
   // 計算尚需補付金額的函式
   const calculateShortAmount = (student) => {
     const coursePrice = getCoursePrice(student.course)
-    const paidAmount = parseInt(student.paymentAmount) || 0
-    const shortAmount = coursePrice - paidAmount
+    const expectedAmount = parseInt(coursePrice.replace(/[^\d]/g, '')) || 0
+    const paidAmount = parseInt(student.paymentAmount?.replace(/[^\d]/g, '') || '0')
+    const shortAmount = expectedAmount - paidAmount
     return shortAmount > 0 ? shortAmount.toLocaleString() : '0'
   }
 
@@ -1780,6 +1781,22 @@ export default function AdminPage() {
                           </div>
                         )}
 
+                        {/* 付款參考號碼 */}
+                        {student.paymentReference && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">後五碼:</span>
+                            <span className="text-gray-900 font-mono">{student.paymentReference}</span>
+                          </div>
+                        )}
+
+                        {/* 付款時間 */}
+                        {student.paymentDate && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">付款時間:</span>
+                            <span className="text-gray-900 text-xs">{formatDateTime(student.paymentDate)}</span>
+                          </div>
+                        )}
+
                         {/* 退款狀態 */}
                         {student.refundStatus && student.refundStatus !== 'NONE' && (
                           <div className="flex justify-between">
@@ -1806,6 +1823,15 @@ export default function AdminPage() {
                           </div>
                         )}
 
+                        {/* 課程價格資訊 */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                          <div className="text-blue-800 text-xs">
+                            <div className="font-medium mb-1">📚 課程資訊</div>
+                            <div>課程: {getCourseName(student.course)}</div>
+                            <div>應付: {getCoursePrice(student.course)}</div>
+                          </div>
+                        </div>
+
                         {/* 部分付款詳細資訊 */}
                         {student.paymentStatus === 'PARTIAL' && (
                           <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
@@ -1821,46 +1847,78 @@ export default function AdminPage() {
                         {/* 操作按鈕 */}
                         <div className="pt-3 border-t border-gray-100">
                           <div className="flex flex-wrap gap-2">
-                            {student.enrollmentStatus === 'CANCELLED' && (
-                              <button
-                                onClick={() => handleRestoreEnrollment(student.id)}
-                                className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors"
-                              >
-                                恢復報名
-                              </button>
-                            )}
+                            {/* 根據報名狀態顯示不同按鈕 */}
+                            {student.enrollmentStatus === 'ACTIVE' ? (
+                              student.paymentStatus === 'UNPAID' ? (
+                                <button
+                                  onClick={() => handleUpdateStatus(student.id, 'PAID')}
+                                  className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors"
+                                >
+                                  標記為已付款
+                                </button>
+                              ) : student.paymentStatus === 'PARTIAL' ? (
+                                <>
+                                  <button
+                                    onClick={() => handleUpdateStatus(student.id, 'PAID')}
+                                    className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors"
+                                  >
+                                    標記為已付款
+                                  </button>
+                                  <button
+                                    onClick={() => handleSendSupplementReminder(student.id)}
+                                    disabled={sendingMessages.has(student.id)}
+                                    className={`px-3 py-1 text-white text-xs rounded-md transition-colors ${
+                                      sendingMessages.has(student.id)
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : 'bg-yellow-600 hover:bg-yellow-700'
+                                    }`}
+                                  >
+                                    {sendingMessages.has(student.id) ? '發送中...' : '發送補付提醒'}
+                                  </button>
+                                </>
+                              ) : student.paymentStatus === 'PAID' ? (
+                                <button
+                                  onClick={() => handleUpdateStatus(student.id, 'UNPAID')}
+                                  className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors"
+                                >
+                                  標記為未付款
+                                </button>
+                              ) : null
+                            ) : student.enrollmentStatus === 'CANCELLED' ? (
+                              <>
+                                <button
+                                  onClick={() => handleRestoreEnrollment(student.id)}
+                                  className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors"
+                                >
+                                  恢復報名
+                                </button>
+                                {student.refundStatus === 'NONE' ? (
+                                  <button
+                                    onClick={() => handleRefund(student.id, 'PENDING')}
+                                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
+                                  >
+                                    處理退款
+                                  </button>
+                                ) : student.refundStatus === 'PENDING' ? (
+                                  <button
+                                    onClick={() => handleRefund(student.id, 'COMPLETED')}
+                                    className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors"
+                                  >
+                                    完成退款
+                                  </button>
+                                ) : (
+                                  <span className="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-md">
+                                    已退款
+                                  </span>
+                                )}
+                              </>
+                            ) : null}
 
-                            {student.paymentStatus === 'PARTIAL' && (
-                              <button
-                                onClick={() => handleSendSupplementReminder(student.id)}
-                                disabled={sendingMessages.has(student.id)}
-                                className={`px-3 py-1 text-white text-xs rounded-md transition-colors ${
-                                  sendingMessages.has(student.id)
-                                    ? 'bg-gray-400 cursor-not-allowed'
-                                    : 'bg-yellow-600 hover:bg-yellow-700'
-                                }`}
-                              >
-                                {sendingMessages.has(student.id) ? '發送中...' : '發送補付提醒'}
-                              </button>
-                            )}
-
-                            {student.enrollmentStatus === 'CANCELLED' && student.refundStatus === 'PENDING' && (
-                              <button
-                                onClick={() => handleProcessRefund(student.id)}
-                                className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors"
-                              >
-                                處理退款
-                              </button>
-                            )}
-
+                            {/* 通用聯繫按鈕 */}
                             <button
-                              onClick={() => {
-                                const message = prompt('請輸入要發送的訊息:')
-                                if (message) {
-                                  handleSendMessage(student.id, message)
-                                }
-                              }}
-                              className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
+                              onClick={() => handleSendLineMessage(student.id)}
+                              className="px-3 py-1 bg-purple-600 text-white text-xs rounded-md hover:bg-purple-700 transition-colors"
+                              title={`聯繫 ${student.name}`}
                             >
                               💬 聯繫
                             </button>
