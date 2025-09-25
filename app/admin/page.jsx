@@ -26,6 +26,10 @@ export default function AdminPage() {
   const [batchSending, setBatchSending] = useState(false) // 批量發送狀態
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 }) // 批量發送進度
   
+  // 簡單緩存機制
+  const [lastFetch, setLastFetch] = useState(null) // 上次抓取時間
+  const [cacheExpiry] = useState(5 * 60 * 1000) // 5分鐘緩存過期時間
+  
 
   // 測試 LINE 連線的函式
   const testLineConnection = async () => {
@@ -44,13 +48,27 @@ export default function AdminPage() {
     }
   }
 
-  // 獲取學生資料的函式
-  const fetchStudents = async () => {
+  // 檢查緩存是否有效
+  const isCacheValid = () => {
+    if (!lastFetch) return false
+    return (Date.now() - lastFetch) < cacheExpiry
+  }
+
+  // 獲取學生資料的函式（帶緩存）
+  const fetchStudents = async (forceRefresh = false) => {
+    // 如果有有效緩存且不強制刷新，跳過請求
+    if (!forceRefresh && isCacheValid() && students.length > 0) {
+      console.log('使用緩存數據，跳過 API 請求')
+      return
+    }
+
     setIsLoading(true);
     try {
+      console.log('從 API 獲取新數據...')
       const response = await fetch('/api/admin/students')
       const data = await response.json()
       setStudents(data)
+      setLastFetch(Date.now()) // 記錄抓取時間
     } catch (error) {
       console.error("無法獲取學生資料:", error)
       alert('無法載入學生資料，請稍後再試。')
@@ -59,11 +77,60 @@ export default function AdminPage() {
     }
   }
 
-  // 頁面載入時執行一次
+  // 手動刷新數據（強制重新抓取）
+  const refreshStudents = () => {
+    fetchStudents(true)
+  }
+
+  // 清理緩存（在數據更新後調用）
+  const invalidateCache = () => {
+    setLastFetch(null)
+    // 同時清理 localStorage 緩存
+    localStorage.removeItem('admin-students-cache')
+    localStorage.removeItem('admin-students-cache-time')
+  }
+
+  // 從 localStorage 加載緩存數據
   useEffect(() => {
+    try {
+      const cachedData = localStorage.getItem('admin-students-cache')
+      const cachedTime = localStorage.getItem('admin-students-cache-time')
+      
+      if (cachedData && cachedTime) {
+        const cacheAge = Date.now() - parseInt(cachedTime)
+        if (cacheAge < cacheExpiry) {
+          const parsedData = JSON.parse(cachedData)
+          setStudents(parsedData)
+          setLastFetch(parseInt(cachedTime))
+          console.log('從 localStorage 加載緩存數據')
+        } else {
+          // 緩存已過期，清理
+          localStorage.removeItem('admin-students-cache')
+          localStorage.removeItem('admin-students-cache-time')
+        }
+      }
+    } catch (error) {
+      console.error('載入緩存失敗:', error)
+      // 清理損壞的緩存
+      localStorage.removeItem('admin-students-cache')
+      localStorage.removeItem('admin-students-cache-time')
+    }
+    
     fetchStudents()
     fetchNotificationTemplates()
   }, [])
+
+  // 當學員數據更新時，保存到 localStorage
+  useEffect(() => {
+    if (students.length > 0 && lastFetch) {
+      try {
+        localStorage.setItem('admin-students-cache', JSON.stringify(students))
+        localStorage.setItem('admin-students-cache-time', lastFetch.toString())
+      } catch (error) {
+        console.error('保存緩存失敗:', error)
+      }
+    }
+  }, [students, lastFetch])
 
   // 獲取通知模板
   const fetchNotificationTemplates = async () => {
@@ -101,6 +168,7 @@ export default function AdminPage() {
       setStudents(students.map(s => 
         s.id === studentId ? { ...s, paymentStatus: newStatus } : s
       ))
+      invalidateCache() // 清理緩存
       alert('更新成功！')
     } catch (error) {
       console.error("更新付款狀態失敗:", error)
@@ -246,6 +314,7 @@ export default function AdminPage() {
         } : s
       ))
       
+      invalidateCache() // 清理緩存
       alert(`已成功恢復 ${student.name} 的報名狀態！`)
     } catch (error) {
       console.error("恢復報名狀態失敗:", error)
@@ -611,9 +680,22 @@ export default function AdminPage() {
 
       {/* 桌面版標題 */}
       <div className="hidden sm:flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          學員管理後台
-        </h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            學員管理後台
+          </h1>
+          {lastFetch && (
+            <div className="flex items-center text-sm text-gray-500 mt-2">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              數據狀態：{isCacheValid() ? '緩存中' : '已過期'}
+              <span className="ml-1">
+                ({Math.floor((Date.now() - lastFetch) / 1000 / 60)}分鐘前更新)
+              </span>
+            </div>
+          )}
+        </div>
         <div className="flex gap-3 flex-wrap">
           <button
             onClick={testLineConnection}
@@ -677,7 +759,7 @@ export default function AdminPage() {
           </div>
           
           <button
-            onClick={fetchStudents}
+            onClick={refreshStudents}
             disabled={isLoading}
             className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
           >
@@ -1482,7 +1564,7 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={fetchStudents}
+            onClick={refreshStudents}
             disabled={isLoading}
             className="flex flex-col items-center justify-center py-2 px-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="刷新資料"
