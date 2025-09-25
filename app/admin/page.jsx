@@ -2083,7 +2083,7 @@ export default function AdminPage() {
                           <div className="text-slate-500">時間: {formatDateTime(student.paymentDate)}</div>
                         )}
                         {student.paymentNotes && (
-                          <div className="text-slate-500 truncate max-w-32" title={student.paymentNotes}>
+                          <div className="text-slate-500 break-words max-w-48" title={student.paymentNotes}>
                             備註: {student.paymentNotes}
                           </div>
                         )}
@@ -2116,7 +2116,7 @@ export default function AdminPage() {
                           <div className="text-slate-500">時間: {formatDateTime(student.paymentDate)}</div>
                         )}
                         {student.paymentNotes && (
-                          <div className="text-slate-500 truncate max-w-32" title={student.paymentNotes}>
+                          <div className="text-slate-500 break-words max-w-48" title={student.paymentNotes}>
                             備註: {student.paymentNotes}
                           </div>
                         )}
