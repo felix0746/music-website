@@ -2105,8 +2105,10 @@ export default function AdminPage() {
                             {student.paymentNotes && (
                               <div className="text-xs">
                                 <span className="text-gray-600">備註:</span>
-                                <div className="mt-1 p-2 bg-gray-50 rounded text-gray-700 break-words max-w-80">
-                                  {student.paymentNotes}
+                                <div className="mt-1 p-3 bg-gray-50 rounded border text-gray-700 max-w-96">
+                                  <div className="whitespace-pre-wrap leading-relaxed text-xs">
+                                    {student.paymentNotes}
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -2165,8 +2167,10 @@ export default function AdminPage() {
                             {student.paymentNotes && (
                               <div className="text-xs">
                                 <span className="text-gray-600">備註:</span>
-                                <div className="mt-1 p-2 bg-yellow-50 rounded text-gray-700 break-words max-w-80">
-                                  {student.paymentNotes}
+                                <div className="mt-1 p-3 bg-yellow-50 rounded border text-gray-700 max-w-96">
+                                  <div className="whitespace-pre-wrap leading-relaxed text-xs">
+                                    {student.paymentNotes}
+                                  </div>
                                 </div>
                               </div>
                             )}
