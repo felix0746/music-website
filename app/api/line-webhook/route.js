@@ -381,7 +381,11 @@ async function handlePaymentReport(userId, message, replyToken) {
   
   if (paymentStatus === 'PARTIAL') {
     // 部分付款的情況
-    const shortAmount = expectedNumber - paidNumber
+    // 計算總付款金額（包括之前的付款）
+    const previousAmount = parseInt(user.paymentAmount?.replace(/[^\d]/g, '') || '0')
+    const totalPaid = previousAmount + paidNumber
+    const shortAmount = expectedNumber - totalPaid
+    
     confirmMessage = `⚠️ 部分付款已收到！\n\n`
     confirmMessage += `您的付款資訊：\n`
     if (paymentInfo.name) {
@@ -397,7 +401,7 @@ async function handlePaymentReport(userId, message, replyToken) {
     confirmMessage += `課程：${getCourseName(user.course)}\n`
     confirmMessage += `應付金額：${expectedPrice}\n\n`
     confirmMessage += `💰 付款狀況：\n`
-    confirmMessage += `• 您已付款：${paymentInfo.amount}\n`
+    confirmMessage += `• 您已付款：${totalPaid}\n`
     confirmMessage += `• 課程費用：${expectedPrice}\n`
     confirmMessage += `• 尚需補付：${shortAmount} 元\n\n`
     confirmMessage += `📝 補付方式：\n`
