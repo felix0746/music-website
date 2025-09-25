@@ -2750,25 +2750,34 @@ export default function AdminPage() {
           </button>
 
           <button
-            onClick={() => setShowBatchModal(true)}
-            className="flex flex-col items-center justify-center py-2 px-1 text-xs text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-md transition-colors"
-            title="批量操作"
+            onClick={() => {
+              setShowArchived(!showArchived)
+              if (!showArchived) {
+                fetchArchivedStudents()
+              }
+            }}
+            className={`flex flex-col items-center justify-center py-2 px-1 text-xs rounded-md transition-colors ${
+              showArchived 
+                ? 'text-blue-600 bg-blue-50' 
+                : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+            }`}
+            title="歸檔管理"
           >
             <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8l6 6 6-6" />
             </svg>
-            <span>操作</span>
+            <span>歸檔</span>
           </button>
 
           <button
-            onClick={() => handleExportData('csv')}
-            className="flex flex-col items-center justify-center py-2 px-1 text-xs text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-            title="匯出資料"
+            onClick={handleAutoArchive}
+            className="flex flex-col items-center justify-center py-2 px-1 text-xs text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-md transition-colors"
+            title="自動歸檔30天前的退款學員"
           >
             <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>匯出</span>
+            <span>歸檔</span>
           </button>
 
           <button
