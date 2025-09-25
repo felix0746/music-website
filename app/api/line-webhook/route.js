@@ -1,5 +1,7 @@
 import { Client } from '@line/bot-sdk'
 import { PrismaClient } from '@prisma/client'
+import crypto from 'crypto'
+import { logger } from '../../../lib/logger'
 
 let prisma
 let lineClient
@@ -44,28 +46,58 @@ async function safeReplyMessage(lineClient, replyToken, text) {
 }
 
 export async function POST(request) {
+  const startTime = Date.now()
+  
   try {
     const body = await request.text()
     const signature = request.headers.get('x-line-signature')
     
-    // 驗證 LINE 簽名（在生產環境中應該要驗證）
-    // const crypto = require('crypto')
-    // const hash = crypto.createHmac('sha256', process.env.LINE_CHANNEL_SECRET).update(body).digest('base64')
-    // if (hash !== signature) {
-    //   return Response.json({ error: 'Invalid signature' }, { status: 401 })
-    // }
+    logger.apiRequest('POST', '/api/line-webhook', {
+      signaturePresent: !!signature,
+      bodyLength: body.length
+    })
 
-    const events = JSON.parse(body).events
-
-    for (const event of events) {
-      if (event.type === 'message' && event.message.type === 'text') {
-        await handleTextMessage(event)
+    // 驗證 LINE 簽名（重要的安全措施）
+    if (process.env.NODE_ENV === 'production' && process.env.LINE_CHANNEL_SECRET) {
+      const hash = crypto
+        .createHmac('sha256', process.env.LINE_CHANNEL_SECRET)
+        .update(body)
+        .digest('base64')
+      
+      if (hash !== signature) {
+        logger.error('LINE Webhook 簽名驗證失敗', null, {
+          expectedSignature: hash,
+          receivedSignature: signature
+        })
+        return Response.json(
+          { error: 'Invalid signature' }, 
+          { status: 401 }
+        )
       }
     }
 
+    const events = JSON.parse(body).events
+    logger.info('收到 LINE Webhook 事件', { eventCount: events.length })
+
+    // 並行處理事件（如果有多個）
+    const eventPromises = events
+      .filter(event => event.type === 'message' && event.message.type === 'text')
+      .map(event => handleTextMessage(event))
+    
+    await Promise.all(eventPromises)
+
+    const duration = Date.now() - startTime
+    logger.apiResponse('POST', '/api/line-webhook', 200, duration)
+    
     return Response.json({ success: true })
   } catch (error) {
-    console.error('LINE Webhook 錯誤:', error)
+    const duration = Date.now() - startTime
+    logger.error('LINE Webhook 處理失敗', error, {
+      duration,
+      requestBody: body?.substring(0, 500) // 只記錄前500字符
+    })
+    
+    logger.apiResponse('POST', '/api/line-webhook', 500, duration)
     return Response.json({ error: 'Webhook 處理失敗' }, { status: 500 })
   } finally {
     const prismaInstance = getPrisma()

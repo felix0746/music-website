@@ -43,6 +43,14 @@ model User {
   refundStatus RefundStatus @default(NONE)  // 退費狀態
   refundAmount String?  // 退費金額
   refundDate DateTime?  // 退費日期
+
+  // 添加數據庫索引以提升查詢性能
+  @@index([paymentStatus])
+  @@index([enrollmentStatus])
+  @@index([course])
+  @@index([createdAt])
+  @@index([paymentStatus, enrollmentStatus])
+  @@index([course, paymentStatus])
 }
 
 // vvv 新增的 Enum vvv
