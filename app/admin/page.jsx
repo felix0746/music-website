@@ -1939,7 +1939,7 @@ export default function AdminPage() {
 
           {/* 桌面版：表格顯示 */}
           <div className="hidden sm:block overflow-x-auto rounded-lg border border-slate-200">
-          <table className="min-w-full divide-y divide-slate-200 text-left">
+          <table className="min-w-full divide-y divide-slate-200 text-left table-fixed">
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">
@@ -1950,7 +1950,7 @@ export default function AdminPage() {
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                 </th>
-                <th className="px-6 py-3 text-sm font-semibold text-slate-900">姓名</th>
+                <th className="px-6 py-3 text-sm font-semibold text-slate-900 w-20">姓名</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">課程</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">LINE 資訊</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">註冊日期</th>
@@ -1972,7 +1972,7 @@ export default function AdminPage() {
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-700">{student.name}</td>
+                  <td className="px-6 py-4 text-sm text-slate-700 whitespace-nowrap">{student.name}</td>
                   <td className="px-6 py-4 text-sm text-slate-700">
                     <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">
                       {getCourseName(student.course)}
