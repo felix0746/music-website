@@ -2103,31 +2103,23 @@ export default function AdminPage() {
                               </div>
                             )}
                             {student.paymentNotes && (
-                              <div className="text-xs">
-                                <button
-                                  onClick={() => {
-                                    const modal = document.createElement('div')
-                                    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
-                                    modal.innerHTML = `
-                                      <div class="bg-white rounded-lg p-6 max-w-2xl max-h-96 overflow-y-auto shadow-xl">
-                                        <div class="flex justify-between items-center mb-4">
-                                          <h3 class="text-lg font-semibold text-gray-800">付款備註</h3>
-                                          <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
-                                        </div>
-                                        <div class="whitespace-pre-wrap leading-relaxed text-sm text-gray-700 bg-gray-50 p-4 rounded border">
-                                          ${student.paymentNotes}
-                                        </div>
-                                      </div>
-                                    `
-                                    document.body.appendChild(modal)
-                                    modal.addEventListener('click', (e) => {
-                                      if (e.target === modal) modal.remove()
-                                    })
-                                  }}
-                                  className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
-                                >
-                                  查看備註
-                                </button>
+                              <div className="text-xs relative group">
+                                <span className="text-gray-600">
+                                  備註: 
+                                  <span className="text-blue-600 font-medium">
+                                    {student.paymentNotes.length > 30 
+                                      ? student.paymentNotes.substring(0, 30) + '...' 
+                                      : student.paymentNotes
+                                    }
+                                  </span>
+                                  <span className="text-gray-400 text-xs ml-1">(hover 查看完整)</span>
+                                </span>
+                                <div className="absolute left-0 top-6 z-50 p-3 bg-white border border-gray-200 rounded-lg shadow-lg max-w-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                  <div className="whitespace-pre-wrap leading-relaxed text-xs text-gray-700">
+                                    {student.paymentNotes}
+                                  </div>
+                                  <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-gray-200 transform rotate-45"></div>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -2183,31 +2175,23 @@ export default function AdminPage() {
                               ⚠️ 需要補付
                             </div>
                             {student.paymentNotes && (
-                              <div className="text-xs">
-                                <button
-                                  onClick={() => {
-                                    const modal = document.createElement('div')
-                                    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
-                                    modal.innerHTML = `
-                                      <div class="bg-white rounded-lg p-6 max-w-2xl max-h-96 overflow-y-auto shadow-xl">
-                                        <div class="flex justify-between items-center mb-4">
-                                          <h3 class="text-lg font-semibold text-gray-800">付款備註</h3>
-                                          <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
-                                        </div>
-                                        <div class="whitespace-pre-wrap leading-relaxed text-sm text-gray-700 bg-gray-50 p-4 rounded border">
-                                          ${student.paymentNotes}
-                                        </div>
-                                      </div>
-                                    `
-                                    document.body.appendChild(modal)
-                                    modal.addEventListener('click', (e) => {
-                                      if (e.target === modal) modal.remove()
-                                    })
-                                  }}
-                                  className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
-                                >
-                                  查看備註
-                                </button>
+                              <div className="text-xs relative group">
+                                <span className="text-gray-600">
+                                  備註: 
+                                  <span className="text-blue-600 font-medium">
+                                    {student.paymentNotes.length > 30 
+                                      ? student.paymentNotes.substring(0, 30) + '...' 
+                                      : student.paymentNotes
+                                    }
+                                  </span>
+                                  <span className="text-gray-400 text-xs ml-1">(hover 查看完整)</span>
+                                </span>
+                                <div className="absolute left-0 top-6 z-50 p-3 bg-white border border-gray-200 rounded-lg shadow-lg max-w-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                  <div className="whitespace-pre-wrap leading-relaxed text-xs text-gray-700">
+                                    {student.paymentNotes}
+                                  </div>
+                                  <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-gray-200 transform rotate-45"></div>
+                                </div>
                               </div>
                             )}
                           </div>
