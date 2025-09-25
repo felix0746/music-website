@@ -72,6 +72,8 @@ export default function AdminPage() {
 
   // 統計儀表板相關狀態
   const [showDashboard, setShowDashboard] = useState(true)
+  const [showArchived, setShowArchived] = useState(false)
+  const [archivedStudents, setArchivedStudents] = useState([])
   const [dashboardData, setDashboardData] = useState({
     totalStudents: 0,
     activeStudents: 0,
@@ -1109,6 +1111,83 @@ export default function AdminPage() {
     return shortAmount > 0 ? shortAmount.toLocaleString() : '0'
   }
 
+  // 歸檔管理相關函式
+  const fetchArchivedStudents = async () => {
+    try {
+      const response = await fetch('/api/admin/archived-students')
+      const data = await response.json()
+      if (response.ok) {
+        setArchivedStudents(data.students)
+      } else {
+        console.error('獲取歸檔學員失敗:', data.error)
+      }
+    } catch (error) {
+      console.error('獲取歸檔學員時發生錯誤:', error)
+    }
+  }
+
+  const handleArchiveStudent = async (studentId, reason) => {
+    try {
+      const response = await fetch('/api/admin/archive-refunded', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId, reason })
+      })
+      
+      const result = await response.json()
+      if (response.ok) {
+        alert(`✅ ${result.message}`)
+        refreshStudents() // 刷新學員列表
+      } else {
+        alert(`❌ 歸檔失敗：${result.error}`)
+      }
+    } catch (error) {
+      console.error('歸檔學員時發生錯誤:', error)
+      alert('❌ 歸檔學員時發生錯誤')
+    }
+  }
+
+  const handleRestoreStudent = async (studentId) => {
+    try {
+      const response = await fetch('/api/admin/archive-refunded', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId })
+      })
+      
+      const result = await response.json()
+      if (response.ok) {
+        alert(`✅ ${result.message}`)
+        fetchArchivedStudents() // 刷新歸檔列表
+        refreshStudents() // 刷新學員列表
+      } else {
+        alert(`❌ 恢復失敗：${result.error}`)
+      }
+    } catch (error) {
+      console.error('恢復學員時發生錯誤:', error)
+      alert('❌ 恢復學員時發生錯誤')
+    }
+  }
+
+  const handleAutoArchive = async () => {
+    try {
+      const response = await fetch('/api/admin/archive-refunded', {
+        method: 'POST'
+      })
+      
+      const result = await response.json()
+      if (response.ok) {
+        alert(`✅ ${result.message}`)
+        refreshStudents() // 刷新學員列表
+      } else {
+        alert(`❌ 自動歸檔失敗：${result.error}`)
+      }
+    } catch (error) {
+      console.error('自動歸檔時發生錯誤:', error)
+      alert('❌ 自動歸檔時發生錯誤')
+    }
+  }
+
   // 發送訊息的函式
   const handleSendMessage = async (studentId, message) => {
     // 防止重複發送
@@ -1534,6 +1613,32 @@ export default function AdminPage() {
                 <span className="sm:hidden">刷新</span>
               </>
             )}
+          </button>
+
+          {/* 歸檔管理按鈕 */}
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
+            title="歸檔管理"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8l6 6 6-6" />
+            </svg>
+            <span className="hidden sm:inline">歸檔管理</span>
+            <span className="sm:hidden">歸檔</span>
+          </button>
+
+          {/* 自動歸檔按鈕 */}
+          <button
+            onClick={handleAutoArchive}
+            className="flex items-center gap-2 px-3 py-2 text-sm bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-md transition-colors"
+            title="自動歸檔30天前的退款學員"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="hidden sm:inline">自動歸檔</span>
+            <span className="sm:hidden">歸檔</span>
           </button>
         </div>
       </div>
@@ -2426,6 +2531,51 @@ export default function AdminPage() {
           </table>
         </div>
         </>
+      )}
+
+      {/* 歸檔學員顯示區域 */}
+      {showArchived && (
+        <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">歸檔學員</h3>
+            <button
+              onClick={fetchArchivedStudents}
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              刷新歸檔列表
+            </button>
+          </div>
+          
+          {archivedStudents.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">暫無歸檔學員</p>
+          ) : (
+            <div className="space-y-2">
+              {archivedStudents.map((student) => (
+                <div key={student.id} className="bg-white p-3 rounded border flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">{student.name}</div>
+                    <div className="text-sm text-gray-500">
+                      {getCourseName(student.course)} | 
+                      退款日期: {student.refundDate ? new Date(student.refundDate).toLocaleDateString() : '未知'} |
+                      歸檔日期: {student.archivedAt ? new Date(student.archivedAt).toLocaleDateString() : '未知'}
+                    </div>
+                    {student.archiveReason && (
+                      <div className="text-xs text-gray-400 mt-1">
+                        歸檔原因: {student.archiveReason}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleRestoreStudent(student.id)}
+                    className="ml-4 px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
+                  >
+                    恢復
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* 批量操作模態框 */}
