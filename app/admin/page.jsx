@@ -577,7 +577,7 @@ export default function AdminPage() {
       if (course === 'singing') course = '歌唱課'
       else if (course === 'guitar') course = '吉他課'
       else if (course === 'songwriting') course = '創作課'
-      else if (course === 'band-workshop' || course === 'spring-composition-group') course = '春曲創作團班'
+      else if (course === 'band-workshop' || course === 'spring-composition-group' || course === '歌唱班') course = '春曲創作團班'
       
       if (!acc[course]) {
         acc[course] = { total: 0, paid: 0, active: 0 }
@@ -1296,7 +1296,8 @@ export default function AdminPage() {
       'guitar': '吉他課',
       'songwriting': '創作課',
       'band-workshop': '春曲創作團班',
-      'spring-composition-group': '春曲創作團班'
+      'spring-composition-group': '春曲創作團班',
+      '歌唱班': '春曲創作團班' // 將舊資料對應到春曲創作團班
     }
     return courseNames[courseCode] || courseCode || '未指定'
   }
@@ -1314,7 +1315,8 @@ export default function AdminPage() {
       '歌唱課': 'NT$ 3,000',
       '吉他課': 'NT$ 4,000',
       '創作課': 'NT$ 5,000',
-      '春曲創作團班': 'NT$ 6,000'
+      '春曲創作團班': 'NT$ 6,000',
+      '歌唱班': 'NT$ 6,000' // 舊資料對應到春曲創作團班價格
     }
     return coursePrices[courseCode] || 'NT$ 3,000'
   }
