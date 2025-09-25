@@ -2103,12 +2103,15 @@ export default function AdminPage() {
                               </div>
                             )}
                             {student.paymentNotes && (
-                              <div className="text-xs">
-                                <span className="text-gray-600">備註:</span>
-                                <div className="mt-1 p-3 bg-gray-50 rounded border text-gray-700 max-w-96">
-                                  <div className="whitespace-pre-wrap leading-relaxed text-xs">
+                              <div className="text-xs relative group">
+                                <span className="text-gray-600 cursor-pointer hover:text-blue-600 underline">
+                                  備註:
+                                </span>
+                                <div className="absolute left-0 top-6 z-50 p-4 bg-white border border-gray-200 rounded-lg shadow-xl max-w-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                  <div className="whitespace-pre-wrap leading-relaxed text-xs text-gray-700">
                                     {student.paymentNotes}
                                   </div>
+                                  <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-gray-200 transform rotate-45"></div>
                                 </div>
                               </div>
                             )}
@@ -2165,12 +2168,15 @@ export default function AdminPage() {
                               ⚠️ 需要補付
                             </div>
                             {student.paymentNotes && (
-                              <div className="text-xs">
-                                <span className="text-gray-600">備註:</span>
-                                <div className="mt-1 p-3 bg-yellow-50 rounded border text-gray-700 max-w-96">
-                                  <div className="whitespace-pre-wrap leading-relaxed text-xs">
+                              <div className="text-xs relative group">
+                                <span className="text-gray-600 cursor-pointer hover:text-blue-600 underline">
+                                  備註:
+                                </span>
+                                <div className="absolute left-0 top-6 z-50 p-4 bg-white border border-gray-200 rounded-lg shadow-xl max-w-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                                  <div className="whitespace-pre-wrap leading-relaxed text-xs text-gray-700">
                                     {student.paymentNotes}
                                   </div>
+                                  <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-gray-200 transform rotate-45"></div>
                                 </div>
                               </div>
                             )}
