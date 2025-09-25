@@ -2057,72 +2057,131 @@ export default function AdminPage() {
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-600">
                     {student.paymentStatus === 'PAID' ? (
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium text-green-700">已付款</div>
-                        <div className="text-blue-600 font-medium">課程: {getCourseName(student.course)}</div>
-                        <div className="text-purple-600 font-medium">應付: {getCoursePrice(student.course)}</div>
-                        {student.paymentReference && (
-                          <div className="text-slate-600">後五碼: {student.paymentReference}</div>
-                        )}
-                        {student.paymentAmount && (
-                          <div className={`font-medium ${
-                            isPaymentAmountCorrect(student.course, student.paymentAmount) 
-                              ? 'text-green-600' 
-                              : 'text-red-600'
-                          }`}>
-                            實付: {student.paymentAmount}
-                            {isPaymentAmountCorrect(student.course, student.paymentAmount) === false && (
-                              <span className="ml-1 text-red-500">❌</span>
-                            )}
-                            {isPaymentAmountCorrect(student.course, student.paymentAmount) === true && (
-                              <span className="ml-1 text-green-500">✅</span>
-                            )}
+                      <div className="space-y-2">
+                        {/* 付款狀態標籤 */}
+                        <div className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                          ✅ 已付款
+                        </div>
+                        
+                        {/* 付款摘要 */}
+                        <div className="bg-gray-50 rounded-md p-2 space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">課程:</span>
+                            <span className="font-medium text-blue-600">{getCourseName(student.course)}</span>
                           </div>
-                        )}
-                        {student.paymentDate && (
-                          <div className="text-slate-500">時間: {formatDateTime(student.paymentDate)}</div>
-                        )}
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">應付:</span>
+                            <span className="font-medium text-purple-600">{getCoursePrice(student.course)}</span>
+                          </div>
+                          {student.paymentAmount && (
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-600">實付:</span>
+                              <span className={`font-medium ${
+                                isPaymentAmountCorrect(student.course, student.paymentAmount) 
+                                  ? 'text-green-600' 
+                                  : 'text-red-600'
+                              }`}>
+                                {student.paymentAmount}
+                                {isPaymentAmountCorrect(student.course, student.paymentAmount) === true && (
+                                  <span className="ml-1">✅</span>
+                                )}
+                                {isPaymentAmountCorrect(student.course, student.paymentAmount) === false && (
+                                  <span className="ml-1">❌</span>
+                                )}
+                              </span>
+                            </div>
+                          )}
+                          {student.paymentReference && (
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-600">後五碼:</span>
+                              <span className="font-mono text-gray-800">{student.paymentReference}</span>
+                            </div>
+                          )}
+                          {student.paymentDate && (
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-600">時間:</span>
+                              <span className="text-gray-500">{formatDateTime(student.paymentDate)}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* 備註（可摺疊） */}
                         {student.paymentNotes && (
-                          <div className="text-slate-500 break-words max-w-48" title={student.paymentNotes}>
-                            備註: {student.paymentNotes}
-                          </div>
+                          <details className="group">
+                            <summary className="text-xs text-blue-600 cursor-pointer hover:text-blue-800">
+                              📝 查看備註
+                            </summary>
+                            <div className="mt-1 p-2 bg-blue-50 rounded text-xs text-gray-700 max-w-64 break-words">
+                              {student.paymentNotes}
+                            </div>
+                          </details>
                         )}
                       </div>
                     ) : student.paymentStatus === 'PARTIAL' ? (
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium text-yellow-700">部分付款</div>
-                        <div className="text-blue-600 font-medium">課程: {getCourseName(student.course)}</div>
-                        <div className="text-purple-600 font-medium">應付: {getCoursePrice(student.course)}</div>
-                        {student.paymentAmount && (
-                          <div className="font-medium text-orange-600">
-                            已付: {student.paymentAmount}
-                          </div>
-                        )}
-                        {(() => {
-                          const expectedPrice = getCoursePrice(student.course)
-                          const expectedNumber = parseInt(expectedPrice.replace(/[^\d]/g, ''))
-                          const paidNumber = student.paymentAmount ? parseInt(student.paymentAmount.replace(/[^\d]/g, '')) : 0
-                          const shortAmount = expectedNumber - paidNumber
-                          return shortAmount > 0 ? (
-                            <div className="font-medium text-red-600">
-                              尚需: {shortAmount} 元
-                            </div>
-                          ) : null
-                        })()}
-                        {student.paymentReference && (
-                          <div className="text-slate-600">後五碼: {student.paymentReference}</div>
-                        )}
-                        {student.paymentDate && (
-                          <div className="text-slate-500">時間: {formatDateTime(student.paymentDate)}</div>
-                        )}
-                        {student.paymentNotes && (
-                          <div className="text-slate-500 break-words max-w-48" title={student.paymentNotes}>
-                            備註: {student.paymentNotes}
-                          </div>
-                        )}
-                        <div className="mt-1 p-1 bg-yellow-50 rounded border border-yellow-200">
-                          <div className="text-yellow-800 font-medium">⚠️ 需要補付</div>
+                      <div className="space-y-2">
+                        {/* 付款狀態標籤 */}
+                        <div className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
+                          ⚠️ 部分付款
                         </div>
+                        
+                        {/* 付款摘要 */}
+                        <div className="bg-yellow-50 rounded-md p-2 space-y-1 border border-yellow-200">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">課程:</span>
+                            <span className="font-medium text-blue-600">{getCourseName(student.course)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-gray-600">應付:</span>
+                            <span className="font-medium text-purple-600">{getCoursePrice(student.course)}</span>
+                          </div>
+                          {student.paymentAmount && (
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-600">已付:</span>
+                              <span className="font-medium text-orange-600">{student.paymentAmount}</span>
+                            </div>
+                          )}
+                          {(() => {
+                            const expectedPrice = getCoursePrice(student.course)
+                            const expectedNumber = parseInt(expectedPrice.replace(/[^\d]/g, ''))
+                            const paidNumber = student.paymentAmount ? parseInt(student.paymentAmount.replace(/[^\d]/g, '')) : 0
+                            const shortAmount = expectedNumber - paidNumber
+                            return shortAmount > 0 ? (
+                              <div className="flex justify-between text-xs">
+                                <span className="text-gray-600">尚需:</span>
+                                <span className="font-medium text-red-600">{shortAmount} 元</span>
+                              </div>
+                            ) : null
+                          })()}
+                          {student.paymentReference && (
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-600">後五碼:</span>
+                              <span className="font-mono text-gray-800">{student.paymentReference}</span>
+                            </div>
+                          )}
+                          {student.paymentDate && (
+                            <div className="flex justify-between text-xs">
+                              <span className="text-gray-600">時間:</span>
+                              <span className="text-gray-500">{formatDateTime(student.paymentDate)}</span>
+                            </div>
+                          )}
+                          <div className="pt-1 border-t border-yellow-300">
+                            <div className="text-yellow-800 font-medium text-xs text-center">
+                              ⚠️ 需要補付
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* 備註（可摺疊） */}
+                        {student.paymentNotes && (
+                          <details className="group">
+                            <summary className="text-xs text-blue-600 cursor-pointer hover:text-blue-800">
+                              📝 查看備註
+                            </summary>
+                            <div className="mt-1 p-2 bg-blue-50 rounded text-xs text-gray-700 max-w-64 break-words">
+                              {student.paymentNotes}
+                            </div>
+                          </details>
+                        )}
                       </div>
                     ) : (
                       <div className="text-xs">
