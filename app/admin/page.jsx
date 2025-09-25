@@ -608,17 +608,23 @@ export default function AdminPage() {
     const stats = calculateDashboardData(students)
     
     return (
-      <div className={`transition-all duration-300 overflow-hidden ${showDashboard ? 'max-h-none opacity-100 mb-6' : 'max-h-0 opacity-0'}`}>
-        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">統計儀表板</h2>
-            <button
-              onClick={() => setShowDashboard(!showDashboard)}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              {showDashboard ? '收起' : '展開'}
-            </button>
-          </div>
+      <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-6">
+        {/* 標題和按鈕 - 始終顯示 */}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">統計儀表板</h2>
+          <button
+            onClick={() => setShowDashboard(!showDashboard)}
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
+          >
+            {showDashboard ? '收起' : '展開'}
+            <svg className={`w-4 h-4 transition-transform ${showDashboard ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+
+        {/* 儀表板內容 - 可摺疊 */}
+        <div className={`transition-all duration-300 overflow-hidden ${showDashboard ? 'max-h-none opacity-100' : 'max-h-0 opacity-0'}`}>
 
           {/* 關鍵指標 */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -1306,8 +1312,8 @@ export default function AdminPage() {
       <div className="hidden sm:flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            學員管理後台
-          </h1>
+        學員管理後台
+      </h1>
           {lastFetch && (
             <div className="flex items-center text-sm text-gray-500 mt-2">
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1755,7 +1761,7 @@ export default function AdminPage() {
 
           {/* 桌面版：表格顯示 */}
           <div className="hidden sm:block overflow-x-auto rounded-lg border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200 text-left">
+          <table className="min-w-full divide-y divide-slate-200 text-left">
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">
@@ -1951,14 +1957,14 @@ export default function AdminPage() {
                   <td className="px-6 py-4 text-sm">
                     <div className="flex gap-2 flex-wrap">
                       <div className="flex gap-1">
-                        {student.enrollmentStatus === 'ACTIVE' ? (
-                          student.paymentStatus === 'UNPAID' ? (
-                            <button
-                              onClick={() => handleUpdateStatus(student.id, 'PAID')}
-                              className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                            >
-                              標記為已付款
-                            </button>
+                      {student.enrollmentStatus === 'ACTIVE' ? (
+                        student.paymentStatus === 'UNPAID' ? (
+                          <button
+                            onClick={() => handleUpdateStatus(student.id, 'PAID')}
+                            className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                          >
+                            標記為已付款
+                          </button>
                           ) : student.paymentStatus === 'PARTIAL' ? (
                             <>
                               <button
@@ -1979,15 +1985,15 @@ export default function AdminPage() {
                                 {sendingMessages.has(student.id) ? '發送中...' : '發送補付提醒'}
                               </button>
                             </>
-                          ) : (
-                            <button
-                              onClick={() => handleUpdateStatus(student.id, 'UNPAID')}
-                              className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-                            >
-                              標記為未付款
-                            </button>
-                          )
-                        ) : student.enrollmentStatus === 'CANCELLED' ? (
+                        ) : (
+                          <button
+                            onClick={() => handleUpdateStatus(student.id, 'UNPAID')}
+                            className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                          >
+                            標記為未付款
+                          </button>
+                        )
+                      ) : student.enrollmentStatus === 'CANCELLED' ? (
                           <>
                             <button
                               onClick={() => handleRestoreEnrollment(student.id)}
@@ -1996,26 +2002,26 @@ export default function AdminPage() {
                               恢復報名
                             </button>
                             {student.refundStatus === 'NONE' ? (
-                              <button
-                                onClick={() => handleRefund(student.id, 'PENDING')}
-                                className="rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                              >
-                                處理退款
-                              </button>
-                            ) : student.refundStatus === 'PENDING' ? (
-                              <button
-                                onClick={() => handleRefund(student.id, 'COMPLETED')}
-                                className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                              >
-                                完成退款
-                              </button>
-                            ) : (
-                              <span className="text-xs text-green-600 font-medium">已退款</span>
+                          <button
+                            onClick={() => handleRefund(student.id, 'PENDING')}
+                            className="rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                          >
+                            處理退款
+                          </button>
+                        ) : student.refundStatus === 'PENDING' ? (
+                          <button
+                            onClick={() => handleRefund(student.id, 'COMPLETED')}
+                            className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                          >
+                            完成退款
+                          </button>
+                        ) : (
+                          <span className="text-xs text-green-600 font-medium">已退款</span>
                             )}
                           </>
-                        ) : (
-                          <span className="text-xs text-gray-400">-</span>
-                        )}
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
+                      )}
                       </div>
                       
                       {/* 通用聯繫按鈕 */}
@@ -2032,7 +2038,7 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
-          </div>
+        </div>
         </>
       )}
 
