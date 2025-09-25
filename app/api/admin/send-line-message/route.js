@@ -4,10 +4,12 @@ import { PrismaClient } from '@prisma/client'
 let prisma
 let lineClient
 
-// 延遲初始化，避免 Vercel 冷啟動問題
+// 優化的單例模式，避免重複初始化
 function getPrisma() {
   if (!prisma) {
-    prisma = new PrismaClient()
+    prisma = new PrismaClient({
+      log: ['error'], // 只記錄錯誤，減少日誌開銷
+    })
   }
   return prisma
 }
@@ -15,7 +17,12 @@ function getPrisma() {
 function getLineClient() {
   if (!lineClient) {
     lineClient = new Client({
-      channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN
+      channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
+      // 添加連接池配置以提升性能
+      httpConfig: {
+        timeout: 10000, // 10秒超時
+        retry: 2, // 重試2次
+      }
     })
   }
   return lineClient

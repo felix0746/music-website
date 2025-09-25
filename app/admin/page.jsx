@@ -24,6 +24,7 @@ export default function AdminPage() {
   // 防止重複發送訊息的狀態
   const [sendingMessages, setSendingMessages] = useState(new Set()) // 追蹤正在發送的訊息
   const [batchSending, setBatchSending] = useState(false) // 批量發送狀態
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 }) // 批量發送進度
   
 
   // 測試 LINE 連線的函式
@@ -498,8 +499,9 @@ export default function AdminPage() {
       return
     }
 
-    // 設置批量發送狀態
+    // 設置批量發送狀態和進度
     setBatchSending(true)
+    setBatchProgress({ current: 0, total: selectedStudents.length })
 
     try {
       const response = await fetch('/api/admin/batch-send-message', {
@@ -521,20 +523,24 @@ export default function AdminPage() {
       const result = await response.json()
 
       if (result.success) {
-        alert(`批量發送完成！\n成功：${result.summary.success} 個\n失敗：${result.summary.failed} 個`)
+        // 顯示詳細結果
+        const successRate = ((result.summary.success / result.summary.total) * 100).toFixed(1)
+        alert(`✅ 批量發送完成！\n\n📊 發送統計：\n• 總數：${result.summary.total} 個\n• 成功：${result.summary.success} 個\n• 失敗：${result.summary.failed} 個\n• 成功率：${successRate}%`)
+        
         setShowNotificationModal(false)
         setSelectedStudents([])
         setBatchMessage('')
         setBatchTemplate('')
       } else {
-        alert(`發送失敗：${result.error}`)
+        alert(`❌ 發送失敗：${result.error}`)
       }
     } catch (error) {
       console.error('批量發送失敗:', error)
-      alert('批量發送時發生錯誤')
+      alert('❌ 批量發送時發生錯誤，請稍後再試')
     } finally {
-      // 重置批量發送狀態
+      // 重置批量發送狀態和進度
       setBatchSending(false)
+      setBatchProgress({ current: 0, total: 0 })
     }
   }
 
@@ -1405,7 +1411,17 @@ export default function AdminPage() {
                     : 'bg-purple-600 text-white hover:bg-purple-700'
                 }`}
               >
-                {batchSending ? '發送中...' : '發送通知'}
+                {batchSending ? (
+                  <div className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    發送中... ({batchProgress.current}/{batchProgress.total})
+                  </div>
+                ) : (
+                  '發送通知'
+                )}
               </button>
               <button
                 onClick={() => setShowNotificationModal(false)}

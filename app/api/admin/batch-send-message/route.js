@@ -91,43 +91,66 @@ export async function POST(request) {
     let successCount = 0
     let failCount = 0
 
-    // 批量發送訊息
-    for (const student of targetStudents) {
-      try {
-        let finalMessage = message
+    // 並行發送訊息（分批處理避免過載）
+    const batchSize = 5 // 每批處理 5 個訊息
+    const batches = []
+    
+    for (let i = 0; i < targetStudents.length; i += batchSize) {
+      batches.push(targetStudents.slice(i, i + batchSize))
+    }
 
-        // 如果使用模板，替換變數
-        if (templateType && !message) {
-          finalMessage = await processTemplate(templateType, student, message)
-        } else if (templateType && message) {
-          // 如果同時有模板和自訂內容，使用自訂內容但套用模板變數
-          finalMessage = await processTemplate(templateType, student, message)
+    for (const batch of batches) {
+      // 並行處理當前批次
+      const batchPromises = batch.map(async (student) => {
+        try {
+          let finalMessage = message
+
+          // 如果使用模板，替換變數
+          if (templateType && !message) {
+            finalMessage = await processTemplate(templateType, student, message)
+          } else if (templateType && message) {
+            // 如果同時有模板和自訂內容，使用自訂內容但套用模板變數
+            finalMessage = await processTemplate(templateType, student, message)
+          }
+
+          await lineClientInstance.pushMessage(student.lineUserId, {
+            type: 'text',
+            text: finalMessage
+          })
+
+          return {
+            studentId: student.id,
+            name: student.name,
+            status: 'success'
+          }
+
+        } catch (error) {
+          console.error(`發送訊息給 ${student.name} 失敗:`, error)
+          return {
+            studentId: student.id,
+            name: student.name,
+            status: 'failed',
+            error: error.message
+          }
         }
+      })
 
-        await lineClientInstance.pushMessage(student.lineUserId, {
-          type: 'text',
-          text: finalMessage
-        })
+      // 等待當前批次完成
+      const batchResults = await Promise.all(batchPromises)
+      results.push(...batchResults)
+      
+      // 統計成功和失敗數量
+      batchResults.forEach(result => {
+        if (result.status === 'success') {
+          successCount++
+        } else {
+          failCount++
+        }
+      })
 
-        results.push({
-          studentId: student.id,
-          name: student.name,
-          status: 'success'
-        })
-        successCount++
-
-        // 避免發送過快，稍作延遲
-        await new Promise(resolve => setTimeout(resolve, 100))
-
-      } catch (error) {
-        console.error(`發送訊息給 ${student.name} 失敗:`, error)
-        results.push({
-          studentId: student.id,
-          name: student.name,
-          status: 'failed',
-          error: error.message
-        })
-        failCount++
+      // 批次間短暫延遲（避免 API 限制）
+      if (batches.indexOf(batch) < batches.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 50))
       }
     }
 
