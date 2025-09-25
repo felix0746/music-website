@@ -829,30 +829,83 @@ export default function AdminPage() {
       return
     }
 
-    const message = prompt(`發送 LINE 訊息給 ${student.name}：`, `您好 ${student.name}，關於您的${getCourseName(student.course)}報名...`)
+    // 創建手機友好的彈窗
+    const modal = document.createElement('div')
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'
+    modal.innerHTML = `
+      <div class="bg-white rounded-lg w-full max-w-md max-h-[80vh] overflow-hidden">
+        <div class="p-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-800">發送 LINE 訊息</h3>
+          <p class="text-sm text-gray-600 mt-1">給 ${student.name}</p>
+        </div>
+        <div class="p-4">
+          <textarea 
+            id="messageInput" 
+            class="w-full h-32 p-3 border border-gray-300 rounded-md resize-none text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="輸入訊息內容..."
+          >您好 ${student.name}，關於您的${getCourseName(student.course)}報名...</textarea>
+        </div>
+        <div class="flex gap-2 p-4 border-t border-gray-200">
+          <button 
+            id="cancelBtn" 
+            class="flex-1 px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+          >
+            取消
+          </button>
+          <button 
+            id="sendBtn" 
+            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            發送
+          </button>
+        </div>
+      </div>
+    `
     
-    if (!message) return
-
-    try {
-      const response = await fetch('/api/admin/send-line-message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          studentId: studentId, 
-          message: message 
-        })
-      })
-
-      const result = await response.json()
-
-      if (response.ok) {
-        alert(`✅ 訊息已成功發送給 ${student.name}！`)
-      } else {
-        alert(`❌ 發送失敗：${result.error}`)
+    document.body.appendChild(modal)
+    
+    // 自動聚焦到輸入框
+    const textarea = modal.querySelector('#messageInput')
+    textarea.focus()
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length)
+    
+    // 處理按鈕點擊
+    modal.querySelector('#cancelBtn').onclick = () => modal.remove()
+    modal.querySelector('#sendBtn').onclick = async () => {
+      const message = textarea.value.trim()
+      if (!message) {
+        alert('請輸入訊息內容')
+        return
       }
-    } catch (error) {
-      console.error("發送 LINE 訊息失敗:", error)
-      alert('❌ 發送訊息時發生錯誤，請稍後再試。')
+      
+      modal.remove()
+      
+      try {
+        const response = await fetch('/api/admin/send-line-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            studentId: studentId, 
+            message: message 
+          })
+        })
+
+        const result = await response.json()
+
+        if (response.ok) {
+          alert(`✅ 訊息已成功發送給 ${student.name}！`)
+        } else {
+          alert(`❌ 發送失敗：${result.error}`)
+        }
+      } catch (error) {
+        console.error("發送 LINE 訊息失敗:", error)
+        alert('❌ 發送訊息時發生錯誤，請稍後再試。')
+      }
+    }
+    
+    // 點擊背景關閉
+    modal.onclick = (e) => {
+      if (e.target === modal) modal.remove()
     }
   }
 
@@ -866,9 +919,57 @@ export default function AdminPage() {
     const student = students.find(s => s.id === studentId)
     if (!student) return
 
-    if (!confirm(`您確定要發送補付提醒給 ${student.name} 嗎？`)) {
-      return
-    }
+    // 創建手機友好的確認彈窗
+    const confirmed = await new Promise((resolve) => {
+      const confirmModal = document.createElement('div')
+      confirmModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'
+      confirmModal.innerHTML = `
+        <div class="bg-white rounded-lg w-full max-w-sm">
+          <div class="p-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-800">確認發送</h3>
+          </div>
+          <div class="p-4">
+            <p class="text-gray-700">您確定要發送補付提醒給 <span class="font-medium text-blue-600">${student.name}</span> 嗎？</p>
+          </div>
+          <div class="flex gap-2 p-4 border-t border-gray-200">
+            <button 
+              id="cancelConfirmBtn" 
+              class="flex-1 px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              取消
+            </button>
+            <button 
+              id="confirmBtn" 
+              class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+            >
+              發送提醒
+            </button>
+          </div>
+        </div>
+      `
+      
+      document.body.appendChild(confirmModal)
+      
+      // 處理按鈕點擊
+      confirmModal.querySelector('#confirmBtn').onclick = () => {
+        confirmModal.remove()
+        resolve(true)
+      }
+      confirmModal.querySelector('#cancelConfirmBtn').onclick = () => {
+        confirmModal.remove()
+        resolve(false)
+      }
+      
+      // 點擊背景關閉
+      confirmModal.onclick = (e) => {
+        if (e.target === confirmModal) {
+          confirmModal.remove()
+          resolve(false)
+        }
+      }
+    })
+
+    if (!confirmed) return
 
     // 添加到發送中列表
     setSendingMessages(prev => new Set([...prev, studentId]))
