@@ -40,6 +40,47 @@ export default function AdminPage() {
     search: false,
     operations: new Set()
   })
+
+  // 虛擬化列表相關狀態
+  const [virtualList, setVirtualList] = useState({
+    startIndex: 0,
+    endIndex: 50,
+    itemHeight: 80, // 每行高度
+    containerHeight: 600, // 容器高度
+    overscan: 5 // 額外渲染的項目數
+  })
+
+  // 高級篩選相關狀態
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  const [advancedFilters, setAdvancedFilters] = useState({
+    dateRange: {
+      start: '',
+      end: ''
+    },
+    paymentAmount: {
+      min: '',
+      max: ''
+    },
+    enrollmentDate: {
+      start: '',
+      end: ''
+    },
+    hasLineId: 'ALL', // ALL, YES, NO
+    refundStatus: 'ALL',
+    hasEmail: 'ALL'
+  })
+
+  // 統計儀表板相關狀態
+  const [showDashboard, setShowDashboard] = useState(true)
+  const [dashboardData, setDashboardData] = useState({
+    totalStudents: 0,
+    activeStudents: 0,
+    totalRevenue: 0,
+    pendingPayments: 0,
+    courseStats: {},
+    paymentStats: {},
+    monthlyTrends: []
+  })
   
 
   // 測試 LINE 連線的函式
@@ -180,6 +221,493 @@ export default function AdminPage() {
       </div>
     </div>
   )
+
+  // 虛擬化列表計算
+  const calculateVirtualList = (scrollTop, filteredStudents) => {
+    const { itemHeight, containerHeight, overscan } = virtualList
+    const totalItems = filteredStudents.length
+    
+    const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan)
+    const visibleCount = Math.ceil(containerHeight / itemHeight)
+    const endIndex = Math.min(totalItems - 1, startIndex + visibleCount + overscan * 2)
+    
+    return {
+      startIndex,
+      endIndex,
+      totalHeight: totalItems * itemHeight,
+      offsetY: startIndex * itemHeight
+    }
+  }
+
+  // 虛擬化滾動處理
+  const handleVirtualScroll = (e) => {
+    const scrollTop = e.target.scrollTop
+    const filteredStudents = students.filter(student => {
+      const searchMatch = !searchTerm || 
+        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.lineUserId?.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      const paymentMatch = paymentFilter === 'ALL' || student.paymentStatus === paymentFilter
+      const enrollmentMatch = enrollmentFilter === 'ALL' || student.enrollmentStatus === enrollmentFilter
+      const courseMatch = courseFilter === 'ALL' || student.course === courseFilter
+      
+      return searchMatch && paymentMatch && enrollmentMatch && courseMatch
+    })
+    
+    const virtualData = calculateVirtualList(scrollTop, filteredStudents)
+    setVirtualList(prev => ({
+      ...prev,
+      startIndex: virtualData.startIndex,
+      endIndex: virtualData.endIndex
+    }))
+  }
+
+  // 虛擬化列表組件
+  const VirtualizedStudentList = ({ students, isDesktop = false }) => {
+    const filteredStudents = students.filter(student => {
+      const searchMatch = !searchTerm || 
+        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.lineUserId?.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      const paymentMatch = paymentFilter === 'ALL' || student.paymentStatus === paymentFilter
+      const enrollmentMatch = enrollmentFilter === 'ALL' || student.enrollmentStatus === enrollmentFilter
+      const courseMatch = courseFilter === 'ALL' || student.course === courseFilter
+      
+      return searchMatch && paymentMatch && enrollmentMatch && courseMatch
+    })
+
+    const virtualData = calculateVirtualList(0, filteredStudents)
+    const visibleStudents = filteredStudents.slice(virtualList.startIndex, virtualList.endIndex + 1)
+
+    if (isDesktop) {
+      return (
+        <div 
+          className="virtual-container overflow-auto border border-gray-200 rounded-lg"
+          style={{ height: virtualList.containerHeight }}
+          onScroll={handleVirtualScroll}
+        >
+          <div style={{ height: virtualData.totalHeight, position: 'relative' }}>
+            <div style={{ transform: `translateY(${virtualData.offsetY}px)` }}>
+              <table className="min-w-full">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <input
+                        type="checkbox"
+                        checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedStudents(filteredStudents.map(s => s.id))
+                          } else {
+                            setSelectedStudents([])
+                          }
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">學員資訊</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">課程</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">付款狀態</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">報名狀態</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {visibleStudents.map((student, index) => (
+                    <tr key={student.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      {/* 表格內容 - 這裡會插入原有的表格行內容 */}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )
+    } else {
+      // 手機版虛擬化卡片
+      return (
+        <div 
+          className="virtual-container overflow-auto"
+          style={{ height: virtualList.containerHeight }}
+          onScroll={handleVirtualScroll}
+        >
+          <div style={{ height: virtualData.totalHeight, position: 'relative' }}>
+            <div style={{ transform: `translateY(${virtualData.offsetY}px)` }}>
+              <div className="space-y-4">
+                {visibleStudents.map((student) => (
+                  <div key={student.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                    {/* 卡片內容 - 這裡會插入原有的卡片內容 */}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+  }
+
+  // 高級篩選邏輯
+  const applyAdvancedFilters = (student) => {
+    // 日期範圍篩選
+    if (advancedFilters.dateRange.start) {
+      const startDate = new Date(advancedFilters.dateRange.start)
+      const studentDate = new Date(student.createdAt)
+      if (studentDate < startDate) return false
+    }
+    
+    if (advancedFilters.dateRange.end) {
+      const endDate = new Date(advancedFilters.dateRange.end)
+      const studentDate = new Date(student.createdAt)
+      if (studentDate > endDate) return false
+    }
+
+    // 付款金額篩選
+    if (advancedFilters.paymentAmount.min || advancedFilters.paymentAmount.max) {
+      const amount = parseInt(student.paymentAmount?.replace(/[^\d]/g, '') || '0')
+      if (advancedFilters.paymentAmount.min && amount < parseInt(advancedFilters.paymentAmount.min)) return false
+      if (advancedFilters.paymentAmount.max && amount > parseInt(advancedFilters.paymentAmount.max)) return false
+    }
+
+    // LINE ID 篩選
+    if (advancedFilters.hasLineId !== 'ALL') {
+      const hasLineId = Boolean(student.lineUserId)
+      if (advancedFilters.hasLineId === 'YES' && !hasLineId) return false
+      if (advancedFilters.hasLineId === 'NO' && hasLineId) return false
+    }
+
+    // 退費狀態篩選
+    if (advancedFilters.refundStatus !== 'ALL' && student.refundStatus !== advancedFilters.refundStatus) {
+      return false
+    }
+
+    // Email 篩選
+    if (advancedFilters.hasEmail !== 'ALL') {
+      const hasEmail = Boolean(student.email)
+      if (advancedFilters.hasEmail === 'YES' && !hasEmail) return false
+      if (advancedFilters.hasEmail === 'NO' && hasEmail) return false
+    }
+
+    return true
+  }
+
+  // 重置高級篩選
+  const resetAdvancedFilters = () => {
+    setAdvancedFilters({
+      dateRange: { start: '', end: '' },
+      paymentAmount: { min: '', max: '' },
+      enrollmentDate: { start: '', end: '' },
+      hasLineId: 'ALL',
+      refundStatus: 'ALL',
+      hasEmail: 'ALL'
+    })
+  }
+
+  // 高級篩選組件
+  const AdvancedFiltersPanel = () => (
+    <div className={`transition-all duration-300 overflow-hidden ${showAdvancedFilters ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-sm font-medium text-gray-700">高級篩選</h3>
+          <button
+            onClick={resetAdvancedFilters}
+            className="text-xs text-blue-600 hover:text-blue-800"
+          >
+            重置篩選
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* 註冊日期範圍 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">註冊日期範圍</label>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={advancedFilters.dateRange.start}
+                onChange={(e) => setAdvancedFilters(prev => ({
+                  ...prev,
+                  dateRange: { ...prev.dateRange, start: e.target.value }
+                }))}
+                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+              />
+              <input
+                type="date"
+                value={advancedFilters.dateRange.end}
+                onChange={(e) => setAdvancedFilters(prev => ({
+                  ...prev,
+                  dateRange: { ...prev.dateRange, end: e.target.value }
+                }))}
+                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+              />
+            </div>
+          </div>
+
+          {/* 付款金額範圍 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">付款金額範圍</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                placeholder="最小"
+                value={advancedFilters.paymentAmount.min}
+                onChange={(e) => setAdvancedFilters(prev => ({
+                  ...prev,
+                  paymentAmount: { ...prev.paymentAmount, min: e.target.value }
+                }))}
+                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+              />
+              <input
+                type="number"
+                placeholder="最大"
+                value={advancedFilters.paymentAmount.max}
+                onChange={(e) => setAdvancedFilters(prev => ({
+                  ...prev,
+                  paymentAmount: { ...prev.paymentAmount, max: e.target.value }
+                }))}
+                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+              />
+            </div>
+          </div>
+
+          {/* LINE 帳號 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">LINE 帳號</label>
+            <select
+              value={advancedFilters.hasLineId}
+              onChange={(e) => setAdvancedFilters(prev => ({
+                ...prev,
+                hasLineId: e.target.value
+              }))}
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+            >
+              <option value="ALL">全部</option>
+              <option value="YES">有 LINE</option>
+              <option value="NO">無 LINE</option>
+            </select>
+          </div>
+
+          {/* 退費狀態 */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">退費狀態</label>
+            <select
+              value={advancedFilters.refundStatus}
+              onChange={(e) => setAdvancedFilters(prev => ({
+                ...prev,
+                refundStatus: e.target.value
+              }))}
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+            >
+              <option value="ALL">全部</option>
+              <option value="NONE">無退費</option>
+              <option value="PENDING">退費處理中</option>
+              <option value="COMPLETED">退費完成</option>
+              <option value="REJECTED">退費被拒絕</option>
+            </select>
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+            <select
+              value={advancedFilters.hasEmail}
+              onChange={(e) => setAdvancedFilters(prev => ({
+                ...prev,
+                hasEmail: e.target.value
+              }))}
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+            >
+              <option value="ALL">全部</option>
+              <option value="YES">有 Email</option>
+              <option value="NO">無 Email</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  // 計算統計數據
+  const calculateDashboardData = (students) => {
+    const totalStudents = students.length
+    const activeStudents = students.filter(s => s.enrollmentStatus === 'ACTIVE').length
+    
+    // 計算總收入（已付款）
+    const totalRevenue = students
+      .filter(s => s.paymentStatus === 'PAID')
+      .reduce((sum, s) => {
+        const amount = parseInt(s.paymentAmount?.replace(/[^\d]/g, '') || '0')
+        return sum + amount
+      }, 0)
+
+    // 計算待收款項
+    const pendingPayments = students
+      .filter(s => s.paymentStatus === 'PARTIAL' || s.paymentStatus === 'PENDING')
+      .reduce((sum, s) => {
+        const paid = parseInt(s.paymentAmount?.replace(/[^\d]/g, '') || '0')
+        const coursePrice = getCoursePrice(s.course)
+        const expected = parseInt(coursePrice.replace(/[^\d]/g, ''))
+        return sum + (expected - paid)
+      }, 0)
+
+    // 課程統計
+    const courseStats = students.reduce((acc, s) => {
+      const course = s.course || '未指定'
+      if (!acc[course]) {
+        acc[course] = { total: 0, paid: 0, active: 0 }
+      }
+      acc[course].total++
+      if (s.paymentStatus === 'PAID') acc[course].paid++
+      if (s.enrollmentStatus === 'ACTIVE') acc[course].active++
+      return acc
+    }, {})
+
+    // 付款狀態統計
+    const paymentStats = students.reduce((acc, s) => {
+      const status = s.paymentStatus || 'UNPAID'
+      acc[status] = (acc[status] || 0) + 1
+      return acc
+    }, {})
+
+    // 月度趨勢（最近6個月）
+    const monthlyTrends = []
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date()
+      date.setMonth(date.getMonth() - i)
+      const monthKey = date.toISOString().substring(0, 7)
+      
+      const monthStudents = students.filter(s => 
+        s.createdAt?.substring(0, 7) === monthKey
+      )
+      
+      monthlyTrends.push({
+        month: monthKey,
+        students: monthStudents.length,
+        revenue: monthStudents
+          .filter(s => s.paymentStatus === 'PAID')
+          .reduce((sum, s) => sum + parseInt(s.paymentAmount?.replace(/[^\d]/g, '') || '0'), 0)
+      })
+    }
+
+    return {
+      totalStudents,
+      activeStudents,
+      totalRevenue,
+      pendingPayments,
+      courseStats,
+      paymentStats,
+      monthlyTrends
+    }
+  }
+
+  // 統計儀表板組件
+  const DashboardPanel = ({ students }) => {
+    const stats = calculateDashboardData(students)
+    
+    return (
+      <div className={`transition-all duration-300 overflow-hidden ${showDashboard ? 'max-h-none opacity-100 mb-6' : 'max-h-0 opacity-0'}`}>
+        <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">統計儀表板</h2>
+            <button
+              onClick={() => setShowDashboard(!showDashboard)}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              {showDashboard ? '收起' : '展開'}
+            </button>
+          </div>
+
+          {/* 關鍵指標 */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <div className="text-xs text-blue-600 font-medium">總學員數</div>
+              <div className="text-xl font-bold text-blue-900">{stats.totalStudents}</div>
+            </div>
+            <div className="bg-green-50 p-3 rounded-lg">
+              <div className="text-xs text-green-600 font-medium">活躍學員</div>
+              <div className="text-xl font-bold text-green-900">{stats.activeStudents}</div>
+            </div>
+            <div className="bg-yellow-50 p-3 rounded-lg">
+              <div className="text-xs text-yellow-600 font-medium">總收入</div>
+              <div className="text-xl font-bold text-yellow-900">NT$ {stats.totalRevenue.toLocaleString()}</div>
+            </div>
+            <div className="bg-red-50 p-3 rounded-lg">
+              <div className="text-xs text-red-600 font-medium">待收款</div>
+              <div className="text-xl font-bold text-red-900">NT$ {stats.pendingPayments.toLocaleString()}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 課程統計 */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">課程統計</h3>
+              <div className="space-y-2">
+                {Object.entries(stats.courseStats).map(([course, data]) => (
+                  <div key={course} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span className="text-sm font-medium">{course}</span>
+                    <div className="text-xs text-gray-600">
+                      總計: {data.total} | 已付: {data.paid} | 活躍: {data.active}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 付款狀態統計 */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">付款狀態</h3>
+              <div className="space-y-2">
+                {Object.entries(stats.paymentStats).map(([status, count]) => {
+                  const statusMap = {
+                    'PAID': { label: '已付款', color: 'text-green-600 bg-green-50' },
+                    'UNPAID': { label: '未付款', color: 'text-red-600 bg-red-50' },
+                    'PARTIAL': { label: '部分付款', color: 'text-yellow-600 bg-yellow-50' },
+                    'PENDING': { label: '待補付', color: 'text-orange-600 bg-orange-50' }
+                  }
+                  const statusInfo = statusMap[status] || { label: status, color: 'text-gray-600 bg-gray-50' }
+                  
+                  return (
+                    <div key={status} className={`flex justify-between items-center p-2 rounded ${statusInfo.color}`}>
+                      <span className="text-sm font-medium">{statusInfo.label}</span>
+                      <span className="text-sm font-bold">{count}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* 月度趨勢 */}
+          <div className="mt-6">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">月度趨勢（最近6個月）</h3>
+            <div className="grid grid-cols-6 gap-2">
+              {stats.monthlyTrends.map((trend, index) => {
+                const maxStudents = Math.max(...stats.monthlyTrends.map(t => t.students))
+                const heightPercent = maxStudents > 0 ? (trend.students / maxStudents * 100) : 0
+                
+                return (
+                  <div key={index} className="text-center">
+                    <div className="h-20 flex items-end justify-center mb-1">
+                      <div 
+                        className="w-8 bg-blue-500 rounded-t"
+                        style={{ height: `${Math.max(heightPercent, 5)}%` }}
+                        title={`${trend.month}: ${trend.students}人, NT$ ${trend.revenue.toLocaleString()}`}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-600">{trend.month.substring(5)}</div>
+                    <div className="text-xs font-medium">{trend.students}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // 從 localStorage 加載緩存數據
   useEffect(() => {
@@ -577,9 +1105,11 @@ export default function AdminPage() {
 
   // 篩選學員的函式
   const filteredStudents = (students || []).filter(student => {
-    // 搜索條件（姓名）
+    // 基本搜索條件（姓名、Email、LINE ID）
     const matchesSearch = searchTerm === '' || 
-      student.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.lineUserId?.toLowerCase().includes(searchTerm.toLowerCase())
     
     // 付款狀態篩選
     const matchesPayment = paymentFilter === 'ALL' || 
@@ -593,8 +1123,11 @@ export default function AdminPage() {
     const matchesCourse = courseFilter === 'ALL' || 
       student.course === courseFilter || 
       getCourseName(student.course) === courseFilter
+
+    // 高級篩選
+    const matchesAdvanced = applyAdvancedFilters(student)
     
-    return matchesSearch && matchesPayment && matchesEnrollment && matchesCourse
+    return matchesSearch && matchesPayment && matchesEnrollment && matchesCourse && matchesAdvanced
   })
 
   // 檢查付款金額是否正確的函式
@@ -1018,21 +1551,43 @@ export default function AdminPage() {
           </select>
         </div>
         
-        {/* 清除篩選按鈕 */}
-        <div className="flex justify-end">
+        {/* 清除篩選和高級篩選按鈕 */}
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+            </svg>
+            高級篩選
+            <svg className={`w-3 h-3 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
           <button
             onClick={() => {
               setSearchTerm('')
               setPaymentFilter('ALL')
               setEnrollmentFilter('ALL')
               setCourseFilter('ALL')
+              resetAdvancedFilters()
             }}
             className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
           >
-            清除篩選
+            清除所有篩選
           </button>
         </div>
-        
+
+        {/* 高級篩選面板 */}
+        <AdvancedFiltersPanel />
+      </div>
+
+      {/* 統計儀表板 */}
+      <DashboardPanel students={students} />
+
+      {/* 學員列表區域 */}
+      <div>
         {/* 統計信息 */}
         <div className="text-sm text-gray-600">
           {/* 手機版統計 */}
