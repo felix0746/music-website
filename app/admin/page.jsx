@@ -2275,7 +2275,7 @@ export default function AdminPage() {
                           </span>
                           <span className="text-blue-600 font-medium">{getCourseName(student.course)}</span>
                           <span className="text-purple-600 font-medium">{getCoursePrice(student.course)}</span>
-                          {student.paymentReference && (
+                        {student.paymentReference && (
                             <span className="text-gray-600">後五碼: {student.paymentReference}</span>
                           )}
                         </div>
@@ -2289,7 +2289,7 @@ export default function AdminPage() {
                             </svg>
                           </summary>
                           <div className="mt-2 space-y-1 pl-2 border-l-2 border-red-200">
-                            {student.paymentAmount && (
+                        {student.paymentAmount && (
                               <div className="text-xs">
                                 <span className="text-gray-600">原付款:</span>
                                 <span className="ml-1 font-medium text-gray-600 line-through">{student.paymentAmount}</span>
@@ -2343,25 +2343,25 @@ export default function AdminPage() {
                               <div className="text-xs">
                                 <span className="text-gray-600">實付:</span>
                                 <span className={`ml-1 font-medium ${
-                                  isPaymentAmountCorrect(student.course, student.paymentAmount) 
-                                    ? 'text-green-600' 
-                                    : 'text-red-600'
-                                }`}>
+                            isPaymentAmountCorrect(student.course, student.paymentAmount) 
+                              ? 'text-green-600' 
+                              : 'text-red-600'
+                          }`}>
                                   {student.paymentAmount}
                                   {isPaymentAmountCorrect(student.course, student.paymentAmount) === true && (
                                     <span className="ml-1">✅</span>
                                   )}
-                                  {isPaymentAmountCorrect(student.course, student.paymentAmount) === false && (
+                            {isPaymentAmountCorrect(student.course, student.paymentAmount) === false && (
                                     <span className="ml-1">❌</span>
-                                  )}
+                            )}
                                 </span>
                               </div>
                             )}
                             {student.paymentDate && (
                               <div className="text-xs text-gray-500">
                                 時間: {formatDateTime(student.paymentDate)}
-                              </div>
-                            )}
+                          </div>
+                        )}
                             {student.paymentNotes && (
                               <div className="text-xs">
                                 <span className="text-gray-600">備註:</span>
@@ -2416,15 +2416,15 @@ export default function AdminPage() {
                                 </div>
                               ) : null
                             })()}
-                            {student.paymentDate && (
+                        {student.paymentDate && (
                               <div className="text-xs text-gray-500">
                                 時間: {formatDateTime(student.paymentDate)}
                               </div>
-                            )}
+                        )}
                             <div className="text-xs text-yellow-800 font-medium">
                               ⚠️ 需要補付
                             </div>
-                            {student.paymentNotes && (
+                        {student.paymentNotes && (
                               <div className="text-xs">
                                 <span className="text-gray-600">備註:</span>
                                 <div className="mt-1 p-2 bg-yellow-50 rounded border text-gray-700 max-w-80">
@@ -2432,8 +2432,8 @@ export default function AdminPage() {
                                     {student.paymentNotes}
                                   </div>
                                 </div>
-                              </div>
-                            )}
+                          </div>
+                        )}
                           </div>
                         </details>
                       </div>
