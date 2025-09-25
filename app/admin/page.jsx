@@ -1979,13 +1979,13 @@ export default function AdminPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-600">
-                    <div className="text-xs space-y-1">
+                    <div className="text-xs">
                       {student.lineUserId ? (
-                        <>
-                          <div className="font-medium text-green-700">已連結 LINE</div>
-                          <div className="text-slate-500 font-mono text-xs break-all">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-green-700">已連結 LINE</span>
+                          <span className="text-slate-500 font-mono text-xs">
                             ID: {student.lineUserId?.substring(0, 8)}...
-                          </div>
+                          </span>
                           <button
                             onClick={() => {
                               navigator.clipboard.writeText(student.lineUserId)
@@ -1995,9 +1995,9 @@ export default function AdminPage() {
                           >
                             複製完整 ID
                           </button>
-                        </>
+                        </div>
                       ) : (
-                        <div className="text-slate-400">未連結</div>
+                        <span className="text-slate-400">未連結</span>
                       )}
                     </div>
                   </td>
