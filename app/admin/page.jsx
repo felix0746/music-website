@@ -2059,7 +2059,7 @@ export default function AdminPage() {
                     {student.paymentStatus === 'PAID' ? (
                       <div className="space-y-1">
                         {/* 簡潔的基本資訊 */}
-                        <div className="flex items-center gap-2 text-xs">
+                        <div className="flex items-center gap-2 text-xs flex-wrap">
                           <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
                             ✅ 已付款
                           </span>
@@ -2116,7 +2116,7 @@ export default function AdminPage() {
                     ) : student.paymentStatus === 'PARTIAL' ? (
                       <div className="space-y-1">
                         {/* 簡潔的基本資訊 */}
-                        <div className="flex items-center gap-2 text-xs">
+                        <div className="flex items-center gap-2 text-xs flex-wrap">
                           <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
                             ⚠️ 部分付款
                           </span>
