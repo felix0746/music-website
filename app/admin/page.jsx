@@ -582,7 +582,11 @@ export default function AdminPage() {
 
     // 付款狀態統計
     const paymentStats = students.reduce((acc, s) => {
-      const status = s.paymentStatus || 'UNPAID'
+      let status = s.paymentStatus || 'UNPAID'
+      // 將 PENDING 合併到 PARTIAL 中
+      if (status === 'PENDING') {
+        status = 'PARTIAL'
+      }
       acc[status] = (acc[status] || 0) + 1
       return acc
     }, {})
@@ -685,8 +689,7 @@ export default function AdminPage() {
                   const statusMap = {
                     'PAID': { label: '已付款', color: 'text-green-600 bg-green-50' },
                     'UNPAID': { label: '未付款', color: 'text-red-600 bg-red-50' },
-                    'PARTIAL': { label: '部分付款', color: 'text-yellow-600 bg-yellow-50' },
-                    'PENDING': { label: '待補付', color: 'text-orange-600 bg-orange-50' }
+                    'PARTIAL': { label: '部分付款', color: 'text-yellow-600 bg-yellow-50' }
                   }
                   const statusInfo = statusMap[status] || { label: status, color: 'text-gray-600 bg-gray-50' }
                   
@@ -1140,7 +1143,8 @@ export default function AdminPage() {
     
     // 付款狀態篩選
     const matchesPayment = paymentFilter === 'ALL' || 
-      student.paymentStatus === paymentFilter
+      student.paymentStatus === paymentFilter ||
+      (paymentFilter === 'PARTIAL' && student.paymentStatus === 'PENDING')
     
     // 報名狀態篩選
     const matchesEnrollment = enrollmentFilter === 'ALL' || 
@@ -1497,7 +1501,6 @@ export default function AdminPage() {
               <option value="ALL">全部</option>
               <option value="PAID">已付款</option>
               <option value="PARTIAL">部分付款</option>
-              <option value="PENDING">待補付</option>
               <option value="UNPAID">尚未付款</option>
             </select>
           </div>
@@ -1550,7 +1553,6 @@ export default function AdminPage() {
               <option value="PAID">已付款</option>
               <option value="UNPAID">尚未付款</option>
               <option value="PARTIAL">部分付款</option>
-              <option value="PENDING">待補付</option>
             </select>
 
             <select
@@ -1625,8 +1627,7 @@ export default function AdminPage() {
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>已付款: {filteredStudents?.filter(s => s.paymentStatus === 'PAID').length || 0}</div>
               <div>未付款: {filteredStudents?.filter(s => s.paymentStatus === 'UNPAID').length || 0}</div>
-              <div>部分付款: {filteredStudents?.filter(s => s.paymentStatus === 'PARTIAL').length || 0}</div>
-              <div>待補付: {filteredStudents?.filter(s => s.paymentStatus === 'PENDING').length || 0}</div>
+              <div>部分付款: {filteredStudents?.filter(s => s.paymentStatus === 'PARTIAL' || s.paymentStatus === 'PENDING').length || 0}</div>
             </div>
           </div>
 
@@ -1638,8 +1639,7 @@ export default function AdminPage() {
             <div className="flex gap-4">
               <span>已付款: {filteredStudents?.filter(s => s.paymentStatus === 'PAID').length || 0}</span>
               <span>未付款: {filteredStudents?.filter(s => s.paymentStatus === 'UNPAID').length || 0}</span>
-              <span>部分付款: {filteredStudents?.filter(s => s.paymentStatus === 'PARTIAL').length || 0}</span>
-              <span>待補付: {filteredStudents?.filter(s => s.paymentStatus === 'PENDING').length || 0}</span>
+              <span>部分付款: {filteredStudents?.filter(s => s.paymentStatus === 'PARTIAL' || s.paymentStatus === 'PENDING').length || 0}</span>
             </div>
           </div>
         </div>
