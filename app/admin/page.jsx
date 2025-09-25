@@ -2103,22 +2103,12 @@ export default function AdminPage() {
                               </div>
                             )}
                             {student.paymentNotes && (
-                              <div className="text-xs relative group">
-                                <span className="text-gray-600">
-                                  備註: 
-                                  <span className="text-blue-600 font-medium">
-                                    {student.paymentNotes.length > 30 
-                                      ? student.paymentNotes.substring(0, 30) + '...' 
-                                      : student.paymentNotes
-                                    }
-                                  </span>
-                                  <span className="text-gray-400 text-xs ml-1">(hover 查看完整)</span>
-                                </span>
-                                <div className="absolute left-0 top-6 z-50 p-3 bg-white border border-gray-200 rounded-lg shadow-lg max-w-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                                  <div className="whitespace-pre-wrap leading-relaxed text-xs text-gray-700">
+                              <div className="text-xs">
+                                <span className="text-gray-600">備註:</span>
+                                <div className="mt-1 p-2 bg-gray-50 rounded border text-gray-700 max-w-80">
+                                  <div className="whitespace-pre-wrap leading-relaxed text-xs">
                                     {student.paymentNotes}
                                   </div>
-                                  <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-gray-200 transform rotate-45"></div>
                                 </div>
                               </div>
                             )}
@@ -2175,22 +2165,12 @@ export default function AdminPage() {
                               ⚠️ 需要補付
                             </div>
                             {student.paymentNotes && (
-                              <div className="text-xs relative group">
-                                <span className="text-gray-600">
-                                  備註: 
-                                  <span className="text-blue-600 font-medium">
-                                    {student.paymentNotes.length > 30 
-                                      ? student.paymentNotes.substring(0, 30) + '...' 
-                                      : student.paymentNotes
-                                    }
-                                  </span>
-                                  <span className="text-gray-400 text-xs ml-1">(hover 查看完整)</span>
-                                </span>
-                                <div className="absolute left-0 top-6 z-50 p-3 bg-white border border-gray-200 rounded-lg shadow-lg max-w-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                                  <div className="whitespace-pre-wrap leading-relaxed text-xs text-gray-700">
+                              <div className="text-xs">
+                                <span className="text-gray-600">備註:</span>
+                                <div className="mt-1 p-2 bg-yellow-50 rounded border text-gray-700 max-w-80">
+                                  <div className="whitespace-pre-wrap leading-relaxed text-xs">
                                     {student.paymentNotes}
                                   </div>
-                                  <div className="absolute -top-1 left-4 w-2 h-2 bg-white border-l border-t border-gray-200 transform rotate-45"></div>
                                 </div>
                               </div>
                             )}
