@@ -11,10 +11,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // 強制使用 webpack 而不是 Turbopack
-  webpack: (config, { isServer }) => {
-    return config;
-  },
 };
 
 export default nextConfig;
