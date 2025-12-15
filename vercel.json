@@ -1,5 +1,5 @@
 {
-  "buildCommand": "prisma generate && next build",
+  "buildCommand": "prisma generate && NEXT_PRIVATE_SKIP_TURBO=1 next build",
   "build": {
     "env": {
       "NEXT_PRIVATE_SKIP_TURBO": "1"
