@@ -1,120 +1,77 @@
 'use client';
 
 import FadeIn from './FadeIn';
-import { motion } from 'framer-motion';
 
 const testimonials = [
   {
     id: 1,
-    name: "學員A",
-    course: "歌唱課",
-    content: "老師的教學方式很適合我，讓我從不敢開口唱歌到現在可以自信地表演。課程內容豐富且實用，非常推薦！",
-    rating: 5
+    name: "Liam",
+    course: "流行音樂創作",
+    content: "老師不僅教我吉他技巧，更教會我如何誠實地面對自己的創作。在那樣的情調中，我找到了失落已久的靈感。",
   },
   {
     id: 2,
-    name: "學員B", 
-    course: "吉他課",
-    content: "從零基礎開始學習吉他，老師很有耐心，每個技巧都講解得很詳細。現在已經可以彈奏自己喜歡的歌曲了。",
-    rating: 5
+    name: "Sophie",
+    course: "歌唱情感演繹",
+    content: "復古的氛圍讓學習變得不再枯燥。每一次在錄音室裡的對話，都像是在上一場跨越時空的藝術課。",
   },
   {
     id: 3,
-    name: "學員C",
-    course: "創作課",
-    content: "創作課讓我找到了表達自己的方式，老師不僅教技巧，更引導我們找到屬於自己的音樂風格。",
-    rating: 5
+    name: "Ethan",
+    course: "現代吉他演奏",
+    content: "這是目前為止最能讓我靜下心來彈琴的地方。琥珀色的燈光下，指尖下的每一個音符都有了靈魂。",
   }
 ];
 
 export default function TestimonialsSection() {
   return (
-    <section id="testimonials" className="bg-white py-16 sm:py-16 md:py-20 lg:py-24">
-      <div className="max-w-6xl mx-auto px-6 sm:px-6 lg:ml-20 lg:mr-20">
+    <section id="testimonials" className="bg-retro-dark py-32 relative overflow-hidden">
+      {/* Background Ambience / Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100vw] h-[100vw] bg-[radial-gradient(circle,rgba(225,151,76,0.03)_0%,transparent_70%)] pointer-events-none"></div>
+
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
         <FadeIn>
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-3xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mb-4 sm:mb-4">
-              學員見證
+          <div className="text-center mb-24">
+            <span className="font-playfair italic text-retro-amber uppercase tracking-[0.4em] text-xs mb-4 block">Echoes of Soul</span>
+            <h2 className="text-5xl md:text-7xl font-playfair font-black text-retro-cream leading-tight">
+              學員 <span className="text-retro-amber italic">共鳴</span>
             </h2>
-            <p className="text-lg sm:text-lg leading-6 sm:leading-8 text-slate-600">
-              聽聽學員們的學習心得與成長故事
-            </p>
           </div>
         </FadeIn>
-        
-        {/* 手機版：可拖動的輪播 */}
-        <div className="lg:hidden overflow-hidden relative">
-          <div className="text-center mb-4 text-sm text-gray-500">
-            ← 滑動查看更多見證 →
-          </div>
-          <motion.div 
-            className="flex gap-4 sm:gap-6 cursor-grab active:cursor-grabbing"
-            drag="x"
-            dragConstraints={{ left: -((testimonials.length - 1) * 320), right: 0 }}
-            dragElastic={0.1}
-            whileDrag={{ cursor: 'grabbing' }}
-            style={{ width: `${testimonials.length * 320}px` }}
-          >
-            {testimonials.map((testimonial, index) => (
-              <FadeIn key={testimonial.id} delay={index * 0.1}>
-                <div className="bg-white rounded-xl p-6 shadow-lg flex-shrink-0 w-80 sm:w-72 h-64 sm:h-52 flex flex-col justify-between border border-gray-100">
-                  <div>
-                    <div className="flex items-center mb-4">
-                      {[...Array(testimonial.rating)].map((_, i) => (
-                        <svg
-                          key={i}
-                          className="w-5 h-5 sm:w-5 sm:h-5 text-yellow-400"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      ))}
-                    </div>
-                    <p className="text-base text-slate-700 mb-4 leading-relaxed line-clamp-4">
-                      "{testimonial.content}"
-                    </p>
-                  </div>
-                  <div className="border-t border-gray-200 pt-4 mt-auto">
-                    <p className="font-semibold text-slate-900 text-base">{testimonial.name}</p>
-                    <p className="text-sm text-slate-600">{testimonial.course}</p>
-                  </div>
-                </div>
-            </FadeIn>
-          ))}
-          </motion.div>
-        </div>
 
-        {/* 桌面版：Grid 佈局 */}
-        <div className="hidden lg:grid grid-cols-3 gap-6 lg:gap-8 ml-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
           {testimonials.map((testimonial, index) => (
             <FadeIn key={testimonial.id} delay={index * 0.1}>
-              <div className="bg-white rounded-xl p-6 shadow-lg h-64 flex flex-col justify-between border border-gray-100">
-                <div>
-                  <div className="flex items-center mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <svg
-                        key={i}
-                        className="w-5 h-5 text-yellow-400"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    ))}
-                  </div>
-                  <p className="text-base text-slate-700 mb-4 leading-relaxed line-clamp-4">
-                    "{testimonial.content}"
+              <div className="flex flex-col h-full relative group p-10 bg-retro-wood/5 border border-retro-amber/10 hover:border-retro-amber/30 transition-all duration-700">
+                {/* Quote Mark Decorative */}
+                <span className="font-playfair italic text-8xl text-retro-amber/10 absolute -top-8 -left-2 select-none group-hover:text-retro-amber/20 transition-colors duration-500">“</span>
+
+                <div className="relative z-10 flex-1">
+                  <p className="text-xl text-retro-cream/70 leading-relaxed font-serif italic mb-12">
+                    {testimonial.content}
                   </p>
                 </div>
-                <div className="border-t border-slate-200 pt-4 mt-auto">
-                  <p className="font-semibold text-slate-900 text-base">{testimonial.name}</p>
-                  <p className="text-sm text-slate-600">{testimonial.course}</p>
+
+                <div className="pt-8 border-t border-retro-amber/10">
+                  <p className="font-playfair font-bold text-retro-cream tracking-widest text-lg uppercase">{testimonial.name}</p>
+                  <p className="text-[10px] font-playfair italic text-retro-amber uppercase tracking-[0.3em] mt-2">{testimonial.course}</p>
                 </div>
+
+                {/* Decorative Bottom Line */}
+                <div className="absolute bottom-0 left-0 w-8 h-[2px] bg-retro-amber/30 group-hover:w-full transition-all duration-700"></div>
               </div>
             </FadeIn>
           ))}
         </div>
+
+        {/* Poetic Footer */}
+        <FadeIn delay={0.6}>
+          <div className="mt-24 text-center">
+            <p className="font-playfair italic text-retro-amber/20 text-3xl md:text-5xl max-w-4xl mx-auto leading-relaxed">
+              "Where the heart aches, the strings speak."
+            </p>
+          </div>
+        </FadeIn>
       </div>
     </section>
   );

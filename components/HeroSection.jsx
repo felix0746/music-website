@@ -1,57 +1,76 @@
+'use client';
+
 import Link from 'next/link';
 import FadeIn from './FadeIn';
+import { motion } from 'framer-motion';
 
 export default function HeroSection() {
   return (
-    <section className="relative h-screen flex items-center justify-center overflow-hidden">
-      {/* Background Image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: 'url("https://placehold.co/1920x1080")'
-        }}
-      >
-        {/* Overlay for better text readability */}
-        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-      </div>
+    <section className="relative h-screen flex items-center justify-center overflow-hidden bg-retro-dark">
+      {/* Film Grain Texture Overlay */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-20 bg-[url('https://www.transparenttextures.com/patterns/p6-dark.png')]"></div>
+
+      {/* Dynamic Warm Ambient Light */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-[120vw] bg-[radial-gradient(circle,rgba(225,151,76,0.08)_0%,transparent_60%)] pointer-events-none"></div>
+
+      {/* Decorative Vinyl Record Shape */}
+      <div className="absolute -right-64 top-1/2 -translate-y-1/2 w-[600px] h-[600px] border-[40px] border-retro-wood/10 rounded-full hidden xl:block opacity-20"></div>
 
       {/* Content */}
-      <div className="relative z-10 text-center text-white px-6 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+      <div className="relative z-30 text-center px-6 max-w-5xl mx-auto">
         <FadeIn delay={0.2}>
-          <h1 className="text-4xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 sm:mb-6 leading-tight">
-            發現你的音樂天賦
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <div className="h-px w-8 bg-retro-amber/40"></div>
+            <span className="font-playfair italic text-retro-amber uppercase tracking-[0.4em] text-xs">
+              Vintage Soul & Modern Sound
+            </span>
+            <div className="h-px w-8 bg-retro-amber/40"></div>
+          </div>
+        </FadeIn>
+
+        <FadeIn delay={0.4}>
+          <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-playfair font-black text-retro-cream mb-8 leading-[0.9] tracking-tighter">
+            找回您的<br />
+            <span className="italic text-retro-amber">音樂靈魂</span>
           </h1>
         </FadeIn>
-        <FadeIn delay={0.4}>
-          <p className="text-lg sm:text-lg md:text-xl lg:text-2xl mb-8 sm:mb-8 leading-relaxed max-w-2xl mx-auto px-2">
-            專業的音樂課程，從基礎到進階，讓你在音樂的世界中找到屬於自己的聲音
+
+        <FadeIn delay={0.6}>
+          <p className="text-xl md:text-2xl text-retro-cream/60 mb-12 max-w-2xl mx-auto leading-relaxed font-serif italic">
+            從吉他的第一聲共鳴到流行創作的靈感迸發。<br className="hidden sm:block" />
+            在這裡，音樂不只是技巧，更是一場歲月沉澱的情調。
           </p>
         </FadeIn>
-        <FadeIn delay={0.6}>
-          <a 
-            href="#courses"
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 sm:py-4 sm:px-8 rounded-xl text-lg sm:text-lg transition-all duration-300 transform hover:scale-105 shadow-lg min-h-[56px] flex items-center justify-center"
-          >
-            探索課程
-          </a>
+
+        <FadeIn delay={0.8}>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
+            <a
+              href="#courses"
+              className="px-12 py-5 bg-retro-amber text-retro-dark font-playfair font-bold uppercase tracking-widest text-sm transition-all duration-500 shadow-[8px_8px_0px_rgba(60,42,33,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
+            >
+              進入創作沙龍
+            </a>
+
+            <Link
+              href="#instructor"
+              className="group flex items-center gap-3 font-playfair text-retro-cream/80 hover:text-retro-amber transition-colors duration-300 tracking-widest text-sm uppercase"
+            >
+              遇見吉他領路人
+              <span className="w-8 h-px bg-retro-amber/40 group-hover:w-12 transition-all duration-300"></span>
+            </Link>
+          </div>
         </FadeIn>
       </div>
 
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white animate-bounce">
-        <svg 
-          className="w-6 h-6" 
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
-        >
-          <path 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            strokeWidth="2" 
-            d="M19 14l-7 7m0 0l-7-7m7 7V3"
+      {/* Styled Scroll Indicator */}
+      <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-30 flex flex-col items-center gap-4">
+        <div className="w-6 h-10 border-2 border-retro-amber/20 rounded-full flex justify-center p-1">
+          <motion.div
+            animate={{ y: [0, 16, 0] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="w-1.5 h-1.5 bg-retro-amber rounded-full"
           />
-        </svg>
+        </div>
       </div>
     </section>
   );
