@@ -49,18 +49,49 @@ export async function POST(request) {
       })
     } else if (action === 'upload_image') {
       // 上傳 Rich Menu 圖片
-      const { richMenuId, imageUrl } = await request.json()
-      if (!richMenuId) {
-        return Response.json(
-          { error: '缺少 richMenuId 參數' },
-          { status: 400 }
-        )
+      // 支援兩種方式：1. JSON 格式（imageUrl） 2. FormData 格式（直接上傳檔案）
+      const contentType = request.headers.get('content-type') || ''
+      
+      if (contentType.includes('multipart/form-data')) {
+        // 方式一：直接上傳檔案（FormData）
+        const formData = await request.formData()
+        const richMenuId = formData.get('richMenuId')
+        const imageFile = formData.get('image')
+        
+        if (!richMenuId || !imageFile) {
+          return Response.json(
+            { error: '缺少 richMenuId 或 image 參數' },
+            { status: 400 }
+          )
+        }
+        
+        // 將檔案轉換為 Buffer
+        const arrayBuffer = await imageFile.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+        
+        await lineClientInstance.setRichMenuImage(richMenuId, buffer)
+        return Response.json({
+          success: true,
+          message: 'Rich Menu 圖片上傳成功',
+          richMenuId: richMenuId,
+          fileName: imageFile.name,
+          fileSize: buffer.length
+        })
+      } else {
+        // 方式二：使用圖片 URL（JSON 格式）
+        const { richMenuId, imageUrl } = await request.json()
+        if (!richMenuId) {
+          return Response.json(
+            { error: '缺少 richMenuId 參數' },
+            { status: 400 }
+          )
+        }
+        await uploadRichMenuImage(lineClientInstance, richMenuId, imageUrl)
+        return Response.json({
+          success: true,
+          message: 'Rich Menu 圖片上傳成功'
+        })
       }
-      await uploadRichMenuImage(lineClientInstance, richMenuId, imageUrl)
-      return Response.json({
-        success: true,
-        message: 'Rich Menu 圖片上傳成功'
-      })
     } else if (action === 'create_and_set') {
       // 創建 Rich Menu（注意：必須先上傳圖片才能設定為預設）
       const richMenu = await createRichMenu(lineClientInstance)

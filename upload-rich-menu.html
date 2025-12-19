@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rich Menu 圖片上傳工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #1e40af;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #1e40af;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d1fae5;
+            border: 2px solid #10b981;
+            color: #065f46;
+            display: block;
+        }
+
+        .result.error {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+            display: block;
+        }
+
+        .result.loading {
+            background: #dbeafe;
+            border: 2px solid #3b82f6;
+            color: #1e40af;
+            display: block;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box h3 {
+            color: #1e40af;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .info-box p {
+            color: #475569;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .file-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📤 Rich Menu 圖片上傳</h1>
+        <p class="subtitle">透過 API 上傳 Rich Menu 圖片（開發者方式）</p>
+
+        <div class="info-box">
+            <h3>📋 使用說明</h3>
+            <p>
+                • 圖片尺寸：2500 x 1686 像素<br>
+                • 檔案格式：PNG 或 JPEG<br>
+                • 檔案大小：< 1MB<br>
+                • 上傳後可設定為預設 Rich Menu
+            </p>
+        </div>
+
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="richMenuId">Rich Menu ID:</label>
+                <input 
+                    type="text" 
+                    id="richMenuId" 
+                    value="richmenu-a6389c5b70cb89ab3df24a986c5c3302" 
+                    placeholder="輸入 Rich Menu ID"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="imageFile">選擇圖片檔案:</label>
+                <input 
+                    type="file" 
+                    id="imageFile" 
+                    accept="image/png,image/jpeg,image/jpg" 
+                    required
+                >
+                <div class="file-info" id="fileInfo" style="display: none;"></div>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn-secondary" onclick="createRichMenu()">創建新的 Rich Menu</button>
+                <button type="submit" class="btn-primary">上傳圖片</button>
+            </div>
+        </form>
+
+        <div id="result"></div>
+
+        <div id="nextStep" style="display: none; margin-top: 20px;">
+            <div class="info-box">
+                <h3>✅ 上傳成功！下一步：</h3>
+                <p>
+                    圖片已上傳成功，現在可以設定為預設 Rich Menu。
+                </p>
+                <button 
+                    type="button" 
+                    class="btn-primary" 
+                    style="margin-top: 10px;"
+                    onclick="setAsDefault()"
+                >
+                    設定為預設 Rich Menu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://music-website-six-opal.vercel.app/api/admin/rich-menu';
+        let currentRichMenuId = 'richmenu-a6389c5b70cb89ab3df24a986c5c3302';
+
+        // 顯示檔案資訊
+        document.getElementById('imageFile').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const fileInfo = document.getElementById('fileInfo');
+                const sizeKB = (file.size / 1024).toFixed(2);
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                
+                fileInfo.innerHTML = `
+                    <strong>檔案資訊：</strong><br>
+                    名稱: ${file.name}<br>
+                    大小: ${sizeKB} KB (${sizeMB} MB)<br>
+                    類型: ${file.type}
+                    ${file.size > 1024 * 1024 ? '<br><span style="color: red;">⚠️ 檔案超過 1MB，請壓縮後再上傳</span>' : ''}
+                `;
+                fileInfo.style.display = 'block';
+            }
+        });
+
+        // 上傳表單
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const richMenuId = document.getElementById('richMenuId').value.trim();
+            const imageFile = document.getElementById('imageFile').files[0];
+            const resultDiv = document.getElementById('result');
+            const nextStepDiv = document.getElementById('nextStep');
+            
+            if (!imageFile) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '❌ 請選擇圖片檔案';
+                return;
+            }
+
+            // 驗證檔案大小
+            if (imageFile.size > 1024 * 1024) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '❌ 檔案大小超過 1MB，請壓縮後再上傳';
+                return;
+            }
+
+            // 顯示載入中
+            resultDiv.className = 'result loading';
+            resultDiv.innerHTML = '⏳ 上傳中...';
+            nextStepDiv.style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                formData.append('richMenuId', richMenuId);
+                formData.append('image', imageFile);
+
+                const response = await fetch(`${API_BASE}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                // 檢查響應狀態
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    let errorData;
+                    try {
+                        errorData = JSON.parse(errorText);
+                    } catch {
+                        errorData = { error: errorText || `HTTP ${response.status}: ${response.statusText}` };
+                    }
+                    throw new Error(errorData.error || errorData.message || '上傳失敗');
+                }
+
+                // 檢查響應內容類型
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`伺服器返回非 JSON 格式: ${text.substring(0, 100)}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentRichMenuId = richMenuId;
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        ✅ <strong>上傳成功！</strong><br>
+                        Rich Menu ID: ${data.richMenuId}<br>
+                        檔案名稱: ${data.fileName}<br>
+                        檔案大小: ${(data.fileSize / 1024).toFixed(2)} KB
+                    `;
+                    nextStepDiv.style.display = 'block';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `❌ <strong>上傳失敗</strong><br>${data.error || '未知錯誤'}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ <strong>錯誤</strong><br>${error.message || '未知錯誤'}<br><small>請檢查瀏覽器 Console 查看詳細錯誤</small>`;
+                console.error('上傳錯誤:', error);
+                console.error('錯誤詳情:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                });
+            }
+        });
+
+        // 創建新的 Rich Menu
+        async function createRichMenu() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result loading';
+            resultDiv.innerHTML = '⏳ 創建中...';
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'create'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentRichMenuId = data.richMenuId;
+                    document.getElementById('richMenuId').value = data.richMenuId;
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        ✅ <strong>Rich Menu 創建成功！</strong><br>
+                        Rich Menu ID: ${data.richMenuId}<br>
+                        現在可以上傳圖片了
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `❌ <strong>創建失敗</strong><br>${data.error || '未知錯誤'}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ <strong>錯誤</strong><br>${error.message}`;
+            }
+        }
+
+        // 設定為預設
+        async function setAsDefault() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result loading';
+            resultDiv.innerHTML = '⏳ 設定中...';
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'set_default',
+                        richMenuId: currentRichMenuId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        ✅ <strong>設定成功！</strong><br>
+                        Rich Menu 已設定為預設，所有用戶都可以看到
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `❌ <strong>設定失敗</strong><br>${data.error || '未知錯誤'}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ <strong>錯誤</strong><br>${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
+

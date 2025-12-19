@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rich Menu 功能測試工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #1e40af;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .test-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .test-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+
+        .test-card h3 {
+            color: #1e40af;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+
+        .test-card p {
+            color: #64748b;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .test-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .test-button:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .test-button:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d1fae5;
+            border: 2px solid #10b981;
+            color: #065f46;
+            display: block;
+        }
+
+        .result.error {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+            display: block;
+        }
+
+        .result.loading {
+            background: #dbeafe;
+            border: 2px solid #3b82f6;
+            color: #1e40af;
+            display: block;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-badge.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-badge.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .info-box h3 {
+            color: #1e40af;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .info-box p {
+            color: #475569;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Rich Menu 功能測試工具</h1>
+        <p class="subtitle">測試所有 Rich Menu 按鈕功能是否正常運作</p>
+
+        <div class="info-box">
+            <h3>📋 使用說明</h3>
+            <p>
+                • 點擊下方按鈕測試各個功能<br>
+                • 測試結果會顯示在按鈕下方<br>
+                • 所有功能都透過 Postback 事件模擬<br>
+                • 即使沒有 Rich Menu 圖片，功能也可以運作
+            </p>
+        </div>
+
+        <div class="test-grid">
+            <div class="test-card">
+                <h3>🎵 課程介紹 <span class="status-badge pending">待測試</span></h3>
+                <p>測試顯示所有課程資訊的功能</p>
+                <button class="test-button" onclick="testFunction('courses')">測試功能</button>
+                <div class="result" id="result-courses"></div>
+            </div>
+
+            <div class="test-card">
+                <h3>📋 我的報名 <span class="status-badge pending">待測試</span></h3>
+                <p>測試查詢報名狀態的功能</p>
+                <button class="test-button" onclick="testFunction('my_enrollment')">測試功能</button>
+                <div class="result" id="result-my_enrollment"></div>
+            </div>
+
+            <div class="test-card">
+                <h3>💳 付款資訊 <span class="status-badge pending">待測試</span></h3>
+                <p>測試顯示付款資訊的功能</p>
+                <button class="test-button" onclick="testFunction('payment_info')">測試功能</button>
+                <div class="result" id="result-payment_info"></div>
+            </div>
+
+            <div class="test-card">
+                <h3>✅ 付款回報 <span class="status-badge pending">待測試</span></h3>
+                <p>測試付款回報引導功能</p>
+                <button class="test-button" onclick="testFunction('payment_report')">測試功能</button>
+                <div class="result" id="result-payment_report"></div>
+            </div>
+
+            <div class="test-card">
+                <h3>❌ 取消/退費 <span class="status-badge pending">待測試</span></h3>
+                <p>測試取消課程引導功能</p>
+                <button class="test-button" onclick="testFunction('cancel_course')">測試功能</button>
+                <div class="result" id="result-cancel_course"></div>
+            </div>
+
+            <div class="test-card">
+                <h3>💬 聯絡老師 <span class="status-badge pending">待測試</span></h3>
+                <p>測試聯絡客服功能</p>
+                <button class="test-button" onclick="testFunction('contact')">測試功能</button>
+                <div class="result" id="result-contact"></div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h3>💡 注意事項</h3>
+            <p>
+                • 這些測試會模擬 Postback 事件發送到您的 Webhook<br>
+                • 測試需要有效的 LINE Channel Access Token<br>
+                • 如果測試失敗，請檢查 Vercel 部署日誌<br>
+                • 功能已實作完成，測試主要是確認 API 連線正常
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://music-website-six-opal.vercel.app/api/line-webhook';
+        const TEST_USER_ID = 'test-user-' + Date.now();
+
+        async function testFunction(action) {
+            const resultDiv = document.getElementById(`result-${action}`);
+            const card = resultDiv.closest('.test-card');
+            const badge = card.querySelector('.status-badge');
+
+            // 顯示載入中
+            resultDiv.className = 'result loading';
+            resultDiv.innerHTML = '⏳ 測試中...';
+            badge.className = 'status-badge pending';
+            badge.textContent = '測試中';
+
+            try {
+                // 模擬 Postback 事件
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        events: [{
+                            type: 'postback',
+                            source: {
+                                userId: TEST_USER_ID
+                            },
+                            postback: {
+                                data: `action=${action}`
+                            },
+                            replyToken: `test-reply-${Date.now()}`
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `✅ 測試成功！<br><small>功能正常運作</small>`;
+                    badge.className = 'status-badge success';
+                    badge.textContent = '正常';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `❌ 測試失敗<br><small>${data.error || '未知錯誤'}</small>`;
+                    badge.className = 'status-badge error';
+                    badge.textContent = '失敗';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ 測試失敗<br><small>${error.message}</small>`;
+                badge.className = 'status-badge error';
+                badge.textContent = '錯誤';
+                console.error('測試錯誤:', error);
+            }
+        }
+
+        // 測試所有功能
+        async function testAll() {
+            const actions = ['courses', 'my_enrollment', 'payment_info', 'payment_report', 'cancel_course', 'contact'];
+            for (const action of actions) {
+                await testFunction(action);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // 等待 1 秒
+            }
+        }
+    </script>
+</body>
+</html>
+
