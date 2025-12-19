@@ -23,23 +23,41 @@ function getLineClient() {
 }
 
 // 安全回覆訊息函數，處理 replyToken 錯誤
-async function safeReplyMessage(lineClient, replyToken, text) {
-  try {
-    await lineClient.replyMessage(replyToken, {
-      type: 'text',
-      text: text
-    })
-  } catch (error) {
-    console.error('回覆訊息失敗:', error.message)
-    // 如果回覆失敗，使用 pushMessage 作為備選
+async function safeReplyMessage(lineClient, replyToken, text, userId = null) {
+  // 如果有 replyToken，優先使用 replyMessage
+  if (replyToken) {
     try {
-      const userId = replyToken.split('_')[0] // 從 replyToken 提取 userId（這是一個簡化的方法）
+      await lineClient.replyMessage(replyToken, {
+        type: 'text',
+        text: text
+      })
+      return
+    } catch (error) {
+      console.error('回覆訊息失敗:', error.message)
+      // 如果回覆失敗，且有用戶 ID，使用 pushMessage 作為備選
+      if (userId) {
+        try {
+          await lineClient.pushMessage(userId, {
+            type: 'text',
+            text: text
+          })
+          return
+        } catch (pushError) {
+          console.error('Push 訊息也失敗:', pushError.message)
+        }
+      }
+    }
+  }
+  
+  // 如果沒有 replyToken 但有用戶 ID，使用 pushMessage
+  if (userId) {
+    try {
       await lineClient.pushMessage(userId, {
         type: 'text',
         text: text
       })
     } catch (pushError) {
-      console.error('Push 訊息也失敗:', pushError.message)
+      console.error('Push 訊息失敗:', pushError.message)
     }
   }
 }
@@ -68,8 +86,17 @@ export async function POST(request) {
     const events = JSON.parse(body).events
 
     for (const event of events) {
+      // 處理文字訊息
       if (event.type === 'message' && event.message.type === 'text') {
         await handleTextMessage(event)
+      }
+      // 處理 Postback 事件（Rich Menu 和按鈕點擊）
+      else if (event.type === 'postback') {
+        await handlePostback(event)
+      }
+      // 處理用戶加入好友事件
+      else if (event.type === 'follow') {
+        await handleFollow(event)
       }
     }
 
@@ -958,4 +985,395 @@ function getCoursePrice(courseCode) {
     '春曲創作團班': 'NT$ 6,000'
   }
   return coursePrices[courseCode] || 'NT$ 3,000'
+}
+
+// 處理 Postback 事件（Rich Menu 和按鈕點擊）
+async function handlePostback(event) {
+  const { replyToken, source, postback } = event
+  const userId = source.userId
+  const data = postback.data
+
+  try {
+    const prismaInstance = getPrisma()
+    const lineClientInstance = getLineClient()
+
+    // 解析 postback data（格式：action=value）
+    const params = new URLSearchParams(data)
+    const action = params.get('action')
+
+    console.log('Postback 事件:', { userId, action, data })
+
+    switch (action) {
+      case 'courses':
+        // 課程介紹
+        await handleShowCourses(userId, replyToken)
+        break
+      
+      case 'my_enrollment':
+        // 我的報名狀態
+        await handleEnrollmentStatus(userId, replyToken)
+        break
+      
+      case 'payment_info':
+        // 付款資訊
+        await handlePaymentInfo(userId, replyToken)
+        break
+      
+      case 'payment_report':
+        // 付款回報
+        await handlePaymentReportGuide(userId, replyToken)
+        break
+      
+      case 'cancel_course':
+        // 取消課程
+        await handleCancelCourseGuide(userId, replyToken)
+        break
+      
+      case 'contact':
+        // 聯絡客服
+        await handleContact(userId, replyToken)
+        break
+      
+      default:
+        await safeReplyMessage(lineClientInstance, replyToken, '抱歉，無法識別此操作，請稍後再試。')
+    }
+
+  } catch (error) {
+    console.error('處理 Postback 事件時發生錯誤:', error)
+    const lineClientInstance = getLineClient()
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。')
+  }
+}
+
+// 處理用戶加入好友事件
+async function handleFollow(event) {
+  const { replyToken, source } = event
+  const userId = source.userId
+
+  try {
+    const prismaInstance = getPrisma()
+    const lineClientInstance = getLineClient()
+
+    // 檢查是否為新用戶
+    const existingUser = await prismaInstance.user.findUnique({
+      where: { lineUserId: userId }
+    })
+
+    if (!existingUser) {
+      // 新用戶，發送歡迎訊息
+      const welcomeMessage = `🎵 歡迎來到 MyMusic 音樂課程！
+
+我們提供以下課程：
+• 歌唱課 - 學習如何愛上自己的歌聲
+• 吉他課 - 從基礎到進階，養成寫作好習慣
+• 創作課 - 探索音樂創作的奧秘
+• 春曲創作團班 - 與同好交流，一起把創作帶上舞台
+
+📱 您可以使用下方的 Rich Menu 快速操作：
+• 點擊「課程介紹」查看所有課程
+• 點擊「付款資訊」查看付款方式
+• 點擊「我的報名」查詢報名狀態
+
+如需報名，請回覆「報名」開始流程！`
+
+      await safeReplyMessage(lineClientInstance, replyToken, welcomeMessage, userId)
+    } else {
+      // 已存在的用戶，發送歡迎回來訊息
+      const welcomeBackMessage = `👋 歡迎回來！
+
+您可以使用下方的 Rich Menu 快速操作：
+• 點擊「我的報名」查詢報名狀態
+• 點擊「付款資訊」查看付款方式
+• 點擊「付款回報」回報付款資訊
+
+如有任何問題，請隨時聯繫我們！`
+
+      await safeReplyMessage(lineClientInstance, replyToken, welcomeBackMessage, userId)
+    }
+
+  } catch (error) {
+    console.error('處理 Follow 事件時發生錯誤:', error)
+  }
+}
+
+// 顯示課程介紹
+async function handleShowCourses(userId, replyToken) {
+  const lineClientInstance = getLineClient()
+  
+  const coursesMessage = `🎵 我們的音樂課程
+
+我們提供以下 4 種課程：
+
+1️⃣ 歌唱課 - NT$ 3,000
+   學習如何愛上自己的歌聲，大方唱出感受
+
+2️⃣ 吉他課 - NT$ 4,000
+   從基礎到進階，養成寫作好習慣
+
+3️⃣ 創作課 - NT$ 5,000
+   探索音樂創作的奧秘
+
+4️⃣ 春曲創作團班 - NT$ 6,000
+   與同好交流，一起把創作帶上舞台
+
+如需報名，請回覆：
+姓名：[您的姓名]
+課程：[歌唱課/吉他課/創作課/春曲創作團班]
+
+例如：
+姓名：張小明
+課程：歌唱課`
+
+  await safeReplyMessage(lineClientInstance, replyToken, coursesMessage)
+}
+
+// 查詢報名狀態
+async function handleEnrollmentStatus(userId, replyToken) {
+  const prismaInstance = getPrisma()
+  const lineClientInstance = getLineClient()
+
+  try {
+    const user = await prismaInstance.user.findUnique({
+      where: { lineUserId: userId }
+    })
+
+    if (!user) {
+      await safeReplyMessage(lineClientInstance, replyToken, `❌ 找不到您的報名記錄
+
+您目前尚未報名任何課程。
+
+如需報名，請回覆：
+姓名：[您的姓名]
+課程：[歌唱課/吉他課/創作課/春曲創作團班]`)
+      return
+    }
+
+    const courseName = getCourseName(user.course)
+    const coursePrice = getCoursePrice(user.course)
+    
+    // 付款狀態文字
+    let paymentStatusText = ''
+    if (user.paymentStatus === 'PAID') {
+      paymentStatusText = '✅ 已付款'
+    } else if (user.paymentStatus === 'PARTIAL') {
+      const expectedNumber = parseInt(coursePrice.replace(/[^\d]/g, ''))
+      const paidNumber = user.paymentAmount ? parseInt(user.paymentAmount.replace(/[^\d]/g, '')) : 0
+      const shortAmount = expectedNumber - paidNumber
+      paymentStatusText = `⚠️ 部分付款（尚需補付 ${shortAmount} 元）`
+    } else {
+      paymentStatusText = '❌ 尚未付款'
+    }
+
+    // 報名狀態文字
+    let enrollmentStatusText = ''
+    if (user.enrollmentStatus === 'ACTIVE') {
+      enrollmentStatusText = '✅ 已報名'
+    } else if (user.enrollmentStatus === 'CANCELLED') {
+      enrollmentStatusText = '❌ 已取消'
+    } else {
+      enrollmentStatusText = '❓ 狀態不明'
+    }
+
+    // 退費狀態文字
+    let refundStatusText = ''
+    if (user.refundStatus === 'COMPLETED') {
+      refundStatusText = `✅ 已退款（${user.refundAmount || '待確認'}）`
+    } else if (user.refundStatus === 'PENDING') {
+      refundStatusText = '⏳ 退費處理中'
+    } else {
+      refundStatusText = '無'
+    }
+
+    const statusMessage = `📋 您的報名狀態
+
+👤 姓名：${user.name}
+📚 課程：${courseName}
+💰 應付金額：${coursePrice}
+📅 報名日期：${user.enrollmentDate ? new Date(user.enrollmentDate).toLocaleDateString('zh-TW') : '未記錄'}
+
+📊 狀態資訊：
+• 報名狀態：${enrollmentStatusText}
+• 付款狀態：${paymentStatusText}
+• 退費狀態：${refundStatusText}
+
+${user.paymentStatus === 'PAID' ? '✅ 您已完成報名並付款，我們會盡快與您聯繫安排課程！' : 
+  user.paymentStatus === 'PARTIAL' ? '⚠️ 您尚未完成付款，請盡快補付剩餘金額。' : 
+  '📝 請盡快完成付款以確認報名。'}`
+
+    await safeReplyMessage(lineClientInstance, replyToken, statusMessage)
+
+  } catch (error) {
+    console.error('查詢報名狀態時發生錯誤:', error)
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，查詢報名狀態時發生錯誤，請稍後再試。')
+  }
+}
+
+// 顯示付款資訊
+async function handlePaymentInfo(userId, replyToken) {
+  const prismaInstance = getPrisma()
+  const lineClientInstance = getLineClient()
+
+  try {
+    const user = await prismaInstance.user.findUnique({
+      where: { lineUserId: userId }
+    })
+
+    if (!user) {
+      // 未報名用戶，顯示一般付款資訊
+      const generalPaymentInfo = `💳 付款資訊
+
+🏦 銀行：台灣銀行 (004)
+💳 帳號：1234567890123456
+👤 戶名：蘇文紹
+
+📚 課程價格：
+• 歌唱課：NT$ 3,000
+• 吉他課：NT$ 4,000
+• 創作課：NT$ 5,000
+• 春曲創作團班：NT$ 6,000
+
+📝 重要提醒：
+• 請於報名後 3 天內完成付款
+• 付款完成後，請回報付款資訊
+• 我們會在確認付款後 24 小時內與您聯繫
+
+如需報名，請回覆「報名」開始流程！`
+
+      await safeReplyMessage(lineClientInstance, replyToken, generalPaymentInfo)
+      return
+    }
+
+    // 已報名用戶，顯示個人付款資訊
+    const courseName = getCourseName(user.course)
+    const coursePrice = getCoursePrice(user.course)
+
+    const paymentInfo = `💳 您的付款資訊
+
+📚 報名課程：${courseName}
+💰 應付金額：${coursePrice}
+
+🏦 銀行：台灣銀行 (004)
+💳 帳號：1234567890123456
+👤 戶名：蘇文紹
+
+📝 重要提醒：
+• 請於 3 天內完成付款
+• 付款完成後，請點擊「付款回報」或回覆付款資訊
+• 我們會在確認付款後 24 小時內與您聯繫
+
+💳 付款回報格式：
+姓名: ${user.name}
+後五碼: [帳號後五碼]
+金額: [匯款金額]
+備註: [其他說明, 選填]`
+
+    await safeReplyMessage(lineClientInstance, replyToken, paymentInfo)
+
+  } catch (error) {
+    console.error('顯示付款資訊時發生錯誤:', error)
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，顯示付款資訊時發生錯誤，請稍後再試。')
+  }
+}
+
+// 付款回報引導
+async function handlePaymentReportGuide(userId, replyToken) {
+  const prismaInstance = getPrisma()
+  const lineClientInstance = getLineClient()
+
+  try {
+    const user = await prismaInstance.user.findUnique({
+      where: { lineUserId: userId }
+    })
+
+    if (!user) {
+      await safeReplyMessage(lineClientInstance, replyToken, '❌ 找不到您的報名記錄，請先完成報名。')
+      return
+    }
+
+    const guideMessage = `💳 付款回報
+
+請按照以下格式提供您的付款資訊：
+
+姓名: ${user.name}
+後五碼: [帳號後五碼]
+金額: [匯款金額]
+備註: [其他說明, 選填]
+
+例如:
+姓名: ${user.name}
+後五碼: 12345
+金額: 3000
+備註: 已匯款完成
+
+我們會立即確認您的付款！`
+
+    await safeReplyMessage(lineClientInstance, replyToken, guideMessage)
+
+  } catch (error) {
+    console.error('付款回報引導時發生錯誤:', error)
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。')
+  }
+}
+
+// 取消課程引導
+async function handleCancelCourseGuide(userId, replyToken) {
+  const prismaInstance = getPrisma()
+  const lineClientInstance = getLineClient()
+
+  try {
+    const user = await prismaInstance.user.findUnique({
+      where: { lineUserId: userId }
+    })
+
+    if (!user) {
+      await safeReplyMessage(lineClientInstance, replyToken, '❌ 找不到您的報名記錄，請先完成報名。')
+      return
+    }
+
+    if (user.enrollmentStatus === 'CANCELLED') {
+      await safeReplyMessage(lineClientInstance, replyToken, '❌ 您的課程已經取消過了。')
+      return
+    }
+
+    const guideMessage = `❌ 取消課程申請
+
+我們很遺憾聽到您想要取消課程。為了確保安全，請提供以下資訊：
+
+姓名: ${user.name}
+課程: ${getCourseName(user.course)}
+取消原因: [請簡述取消原因]
+退費需求: [是/否]
+
+例如:
+姓名: ${user.name}
+課程: ${getCourseName(user.course)}
+取消原因: 工作時間變更，無法配合上課時間
+退費需求: 是
+
+我們會根據您的付款狀況和取消時間來處理退費事宜。`
+
+    await safeReplyMessage(lineClientInstance, replyToken, guideMessage)
+
+  } catch (error) {
+    console.error('取消課程引導時發生錯誤:', error)
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。')
+  }
+}
+
+// 聯絡客服
+async function handleContact(userId, replyToken) {
+  const lineClientInstance = getLineClient()
+
+  const contactMessage = `💬 聯絡我們
+
+如有任何問題或需要協助，請直接在此聊天室留言，我們會盡快回覆您！
+
+您也可以：
+• 直接輸入您的問題
+• 使用 Rich Menu 的其他功能
+• 回覆「報名」開始報名流程
+
+我們會盡快為您處理！`
+
+  await safeReplyMessage(lineClientInstance, replyToken, contactMessage)
 }
