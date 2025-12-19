@@ -1,6 +1,13 @@
 import { PrismaClient } from '@prisma/client'
 
-const prisma = new PrismaClient()
+let prisma
+
+function getPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient()
+  }
+  return prisma
+}
 
 export async function PATCH(request, { params }) {
   try {
@@ -72,8 +79,10 @@ export async function PATCH(request, { params }) {
 
     console.log(`更新學員 ${id} 的資料:`, dataToUpdate)
 
+    const prismaInstance = getPrisma()
+    
     // 更新學員資料
-    const updatedStudent = await prisma.user.update({
+    const updatedStudent = await prismaInstance.user.update({
       where: {
         id: parseInt(id)
       },
@@ -99,23 +108,14 @@ export async function PATCH(request, { params }) {
       )
     }
 
-    // 如果 Prisma 失敗，返回模擬成功回應
-    console.log('Prisma 失敗，返回模擬成功回應...')
-    const mockUpdatedStudent = {
-      id: parseInt(id),
-      lineUserId: `U${id}mock${Date.now()}`,
-      name: `測試學員${id}`,
-      createdAt: new Date().toISOString(),
-      welcomeMessageSent: true,
-      paymentStatus: paymentStatus
-    }
-
-    return Response.json({
-      success: true,
-      message: '付款狀態更新成功（模擬）',
-      student: mockUpdatedStudent
-    })
+    // 返回詳細錯誤訊息
+    return Response.json({ 
+      error: '更新學員資料失敗',
+      details: error.message || '未知錯誤',
+      hint: '請檢查：1. 學員 ID 是否正確 2. 資料格式是否正確 3. 資料庫連接是否正常'
+    }, { status: 500 })
   } finally {
-    await prisma.$disconnect()
+    const prismaInstance = getPrisma()
+    await prismaInstance.$disconnect()
   }
 }

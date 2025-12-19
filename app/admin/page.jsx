@@ -812,18 +812,22 @@ export default function AdminPage() {
       })
 
       if (!response.ok) {
-        throw new Error('更新失敗')
+        const errorData = await response.json().catch(() => ({ error: '更新失敗' }))
+        throw new Error(errorData.error || errorData.details || '更新失敗')
       }
+
+      const result = await response.json()
 
       // 即時更新畫面上該學生的狀態，無需重新整理
       setStudents(students.map(s => 
         s.id === studentId ? { ...s, paymentStatus: newStatus } : s
       ))
       invalidateCache() // 清理緩存
-      alert('更新成功！')
+      alert(`✅ ${result.message || '更新成功！'}`)
     } catch (error) {
       console.error("更新付款狀態失敗:", error)
-      alert('更新狀態時發生錯誤。')
+      const errorMessage = error.message || '更新狀態時發生錯誤'
+      alert(`❌ ${errorMessage}`)
     }
   }
 
@@ -1053,8 +1057,11 @@ export default function AdminPage() {
       })
 
       if (!response.ok) {
-        throw new Error('恢復失敗')
+        const errorData = await response.json().catch(() => ({ error: '恢復失敗' }))
+        throw new Error(errorData.error || errorData.details || '恢復失敗')
       }
+
+      const result = await response.json()
 
       // 即時更新畫面上該學生的狀態
       setStudents(students.map(s => 
@@ -1067,10 +1074,11 @@ export default function AdminPage() {
       ))
       
       invalidateCache() // 清理緩存
-      alert(`已成功恢復 ${student.name} 的報名狀態！`)
+      alert(`✅ ${result.message || `已成功恢復 ${student.name} 的報名狀態！`}`)
     } catch (error) {
       console.error("恢復報名狀態失敗:", error)
-      alert('恢復報名狀態時發生錯誤。')
+      const errorMessage = error.message || '恢復報名狀態時發生錯誤'
+      alert(`❌ ${errorMessage}`)
     }
   }
 
@@ -1234,10 +1242,20 @@ export default function AdminPage() {
   // 處理退款的函式
   const handleRefund = async (studentId, refundStatus) => {
     const student = students.find(s => s.id === studentId)
-    if (!student) return
+    if (!student) {
+      alert('找不到學生記錄')
+      return
+    }
 
     const statusText = refundStatus === 'PENDING' ? '處理中' : '已完成'
-    const refundAmount = student.paymentAmount || getCoursePrice(student.course)
+    
+    // 計算退款金額：部分付款時退還已付金額，全額付款時退還應付金額
+    let refundAmount = student.paymentAmount || getCoursePrice(student.course)
+    
+    // 如果是部分付款，確保退款金額不超過已付金額
+    if (student.paymentStatus === 'PARTIAL' && student.paymentAmount) {
+      refundAmount = student.paymentAmount
+    }
     
     if (!confirm(`您確定要將 ${student.name} 的退款狀態標記為「${statusText}」嗎？\n\n退款金額：${refundAmount}`)) {
       return
@@ -1255,7 +1273,8 @@ export default function AdminPage() {
       })
 
       if (!response.ok) {
-        throw new Error('更新失敗')
+        const errorData = await response.json().catch(() => ({ error: '更新失敗' }))
+        throw new Error(errorData.error || errorData.details || '更新失敗')
       }
 
       // 即時更新畫面上該學生的狀態
@@ -1275,7 +1294,8 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error("更新退款狀態失敗:", error)
-      alert('更新退款狀態時發生錯誤。')
+      const errorMessage = error.message || '更新退款狀態時發生錯誤'
+      alert(`更新退款狀態時發生錯誤：${errorMessage}`)
     }
   }
 
