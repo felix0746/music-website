@@ -322,7 +322,29 @@
                     nextStepDiv.style.display = 'block';
                 } else {
                     resultDiv.className = 'result error';
-                    resultDiv.innerHTML = `❌ <strong>上傳失敗</strong><br>${data.error || '未知錯誤'}`;
+                    let errorHtml = `❌ <strong>上傳失敗</strong><br>${data.error || '未知錯誤'}`;
+                    
+                    // 如果是 Rich Menu 不存在的錯誤，提供創建選項
+                    if (data.error && (data.error.includes('不存在') || data.error.includes('not found'))) {
+                        errorHtml += `<br><br><strong>解決方案：</strong><br>`;
+                        errorHtml += `1. 點擊下方「創建新的 Rich Menu」按鈕<br>`;
+                        errorHtml += `2. 記下返回的 Rich Menu ID<br>`;
+                        errorHtml += `3. 將 Rich Menu ID 填入上方輸入框<br>`;
+                        errorHtml += `4. 重新上傳圖片<br><br>`;
+                        errorHtml += `<button onclick="createRichMenu()" style="background: #10b981; padding: 10px 20px; border: none; border-radius: 6px; color: white; cursor: pointer; font-weight: bold; margin-top: 10px;">
+                            創建新的 Rich Menu
+                        </button>`;
+                    }
+                    
+                    if (data.details) {
+                        errorHtml += `<br><br><small>詳細資訊：${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}</small>`;
+                    }
+                    
+                    if (data.hint) {
+                        errorHtml += `<br><br><small>💡 ${data.hint}</small>`;
+                    }
+                    
+                    resultDiv.innerHTML = errorHtml;
                 }
             } catch (error) {
                 resultDiv.className = 'result error';
@@ -339,6 +361,7 @@
         // 創建新的 Rich Menu
         async function createRichMenu() {
             const resultDiv = document.getElementById('result');
+            const richMenuIdInput = document.getElementById('richMenuId');
             resultDiv.className = 'result loading';
             resultDiv.innerHTML = '⏳ 創建中...';
 

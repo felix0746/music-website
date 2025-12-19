@@ -17,16 +17,35 @@ function getLineClient() {
 export async function GET() {
   try {
     const lineClientInstance = getLineClient()
-    const richMenus = await lineClientInstance.getRichMenuList()
+    const response = await lineClientInstance.getRichMenuList()
+    
+    // LINE SDK 返回的格式可能是 { richmenus: [...] } 或直接是陣列
+    const richMenus = response.richmenus || response || []
+    
+    console.log('Rich Menu 查詢結果:', {
+      responseType: typeof response,
+      hasRichmenus: !!response.richmenus,
+      count: Array.isArray(richMenus) ? richMenus.length : 0,
+      rawResponse: JSON.stringify(response).substring(0, 200)
+    })
     
     return Response.json({
       success: true,
-      richMenus: richMenus.richmenus
+      count: Array.isArray(richMenus) ? richMenus.length : 0,
+      richMenus: richMenus,
+      rawResponse: response // 用於調試
     })
   } catch (error) {
     console.error('取得 Rich Menu 列表時發生錯誤:', error)
+    const errorDetails = error.originalError?.response?.data || error.message || error.stack
+    
     return Response.json(
-      { error: '取得 Rich Menu 列表失敗: ' + error.message },
+      { 
+        success: false,
+        error: '取得 Rich Menu 列表失敗: ' + error.message,
+        details: errorDetails,
+        hint: '請檢查：1. LINE_CHANNEL_ACCESS_TOKEN 是否正確設定 2. LINE API 是否正常運作'
+      },
       { status: 500 }
     )
   }

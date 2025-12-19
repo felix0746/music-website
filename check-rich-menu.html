@@ -134,9 +134,12 @@
 
         <button onclick="checkRichMenuList()">檢查 Rich Menu 列表</button>
         <button onclick="checkDefaultRichMenu()">檢查預設 Rich Menu</button>
+        <button onclick="createNewRichMenu()">創建新的 Rich Menu</button>
         <button onclick="setAsDefault()">設定為預設 Rich Menu</button>
 
         <div id="result"></div>
+        
+        <input type="hidden" id="richMenuId" value="richmenu-a6389c5b70cb89ab3df24a986c5c3302">
     </div>
 
     <script>
@@ -153,15 +156,72 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    resultDiv.className = 'result success';
-                    resultDiv.innerHTML = `
-                        ✅ <strong>Rich Menu 列表</strong><br>
-                        找到 ${data.count || 0} 個 Rich Menu<br>
-                        <pre>${JSON.stringify(data.richMenus || [], null, 2)}</pre>
-                    `;
+                    const count = data.count || 0;
+                    if (count === 0) {
+                        resultDiv.className = 'result error';
+                        resultDiv.innerHTML = `
+                            ⚠️ <strong>未找到 Rich Menu</strong><br>
+                            目前有 0 個 Rich Menu<br><br>
+                            <strong>建議：</strong><br>
+                            1. 點擊「創建新的 Rich Menu」按鈕重新創建<br>
+                            2. 創建後上傳圖片<br>
+                            3. 設定為預設 Rich Menu<br><br>
+                            <button onclick="createNewRichMenu()" style="background: #10b981; padding: 10px 20px; border: none; border-radius: 6px; color: white; cursor: pointer; font-weight: bold;">
+                                創建新的 Rich Menu
+                            </button>
+                            ${data.rawResponse ? `<br><br><small>調試資訊：<pre style="font-size: 10px; max-height: 200px; overflow: auto;">${JSON.stringify(data.rawResponse, null, 2)}</pre></small>` : ''}
+                        `;
+                    } else {
+                        resultDiv.className = 'result success';
+                        resultDiv.innerHTML = `
+                            ✅ <strong>Rich Menu 列表</strong><br>
+                            找到 ${count} 個 Rich Menu<br>
+                            <pre>${JSON.stringify(data.richMenus || [], null, 2)}</pre>
+                        `;
+                    }
                 } else {
                     resultDiv.className = 'result error';
-                    resultDiv.innerHTML = `❌ ${data.error || '查詢失敗'}`;
+                    resultDiv.innerHTML = `❌ ${data.error || '查詢失敗'}<br>${data.details ? `<pre>${JSON.stringify(data.details, null, 2)}</pre>` : ''}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ 錯誤: ${error.message}`;
+            }
+        }
+
+        async function createNewRichMenu() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result info';
+            resultDiv.innerHTML = '⏳ 創建中...';
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'create'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        ✅ <strong>Rich Menu 創建成功！</strong><br>
+                        Rich Menu ID: <code>${data.richMenuId}</code><br><br>
+                        <strong>下一步：</strong><br>
+                        1. 使用上傳工具上傳圖片<br>
+                        2. 上傳成功後設定為預設 Rich Menu<br><br>
+                        <small>請記下此 Rich Menu ID：${data.richMenuId}</small>
+                    `;
+                    // 更新 Rich Menu ID
+                    document.getElementById('richMenuId').value = data.richMenuId;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `❌ ${data.error || '創建失敗'}`;
                 }
             } catch (error) {
                 resultDiv.className = 'result error';
@@ -200,6 +260,15 @@
 
         async function setAsDefault() {
             const resultDiv = document.getElementById('result');
+            const richMenuIdInput = document.getElementById('richMenuId');
+            const richMenuId = richMenuIdInput ? richMenuIdInput.value : RICH_MENU_ID;
+            
+            if (!richMenuId) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '❌ 請先創建 Rich Menu 或輸入 Rich Menu ID';
+                return;
+            }
+            
             resultDiv.className = 'result info';
             resultDiv.innerHTML = '⏳ 設定中...';
 
@@ -211,7 +280,7 @@
                     },
                     body: JSON.stringify({
                         action: 'set_default',
-                        richMenuId: RICH_MENU_ID
+                        richMenuId: richMenuId
                     })
                 });
 

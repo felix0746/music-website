@@ -63,9 +63,51 @@ export async function POST(request) {
       )
     }
 
-    // 上傳圖片到 LINE
+    // 檢查 Rich Menu 是否存在
     const lineClientInstance = getLineClient()
-    await lineClientInstance.setRichMenuImage(richMenuId, buffer)
+    try {
+      const richMenuList = await lineClientInstance.getRichMenuList()
+      const richMenus = richMenuList.richmenus || richMenuList || []
+      const richMenuExists = richMenus.some(rm => rm.richMenuId === richMenuId)
+      
+      if (!richMenuExists) {
+        return Response.json(
+          { 
+            success: false,
+            error: 'Rich Menu 不存在',
+            details: `找不到 Rich Menu ID: ${richMenuId}`,
+            hint: '請先創建 Rich Menu，然後再上傳圖片。您可以使用 /api/admin/rich-menu 的 create action 創建。'
+          },
+          { status: 400 }
+        )
+      }
+    } catch (checkError) {
+      console.error('檢查 Rich Menu 時發生錯誤:', checkError)
+      // 如果檢查失敗，繼續嘗試上傳（可能是權限問題）
+    }
+
+    // 上傳圖片到 LINE
+    try {
+      await lineClientInstance.setRichMenuImage(richMenuId, buffer)
+    } catch (uploadError) {
+      // 處理 LINE API 的特定錯誤
+      const statusCode = uploadError.originalError?.response?.status || 500
+      const errorData = uploadError.originalError?.response?.data || {}
+      
+      if (statusCode === 400 || statusCode === 404) {
+        return Response.json(
+          { 
+            success: false,
+            error: 'Rich Menu 不存在或無效',
+            details: errorData.message || uploadError.message,
+            hint: `Rich Menu ID "${richMenuId}" 可能不存在。請先創建 Rich Menu，然後再上傳圖片。`
+          },
+          { status: 400 }
+        )
+      }
+      
+      throw uploadError // 重新拋出其他錯誤
+    }
 
     return Response.json({
       success: true,
