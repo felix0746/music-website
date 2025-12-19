@@ -35,6 +35,7 @@ model User {
   enrollmentCode String? @unique  // 報名碼
   isVerified     Boolean @default(false)  // 是否已驗證
   enrollmentDate DateTime?  // 報名日期
+  courseStartDate DateTime?  // 開課日期（由老師設定）
   
   // vvv 取消課程系統 vvv
   enrollmentStatus EnrollmentStatus @default(ACTIVE)  // 報名狀態

@@ -78,6 +78,23 @@ export async function PATCH(request, { params }) {
       dataToUpdate.refundDate = updateData.refundDate
     }
 
+    // 處理開課日期更新
+    if (updateData.courseStartDate !== undefined) {
+      if (updateData.courseStartDate === null || updateData.courseStartDate === '') {
+        dataToUpdate.courseStartDate = null
+      } else {
+        // 確保日期格式正確
+        const dateValue = new Date(updateData.courseStartDate)
+        if (isNaN(dateValue.getTime())) {
+          return Response.json(
+            { error: '無效的日期格式，請使用 YYYY-MM-DD 格式' },
+            { status: 400 }
+          )
+        }
+        dataToUpdate.courseStartDate = dateValue
+      }
+    }
+
     console.log(`更新學員 ${id} 的資料:`, dataToUpdate)
 
     const prismaInstance = getPrisma()
@@ -113,10 +130,8 @@ export async function PATCH(request, { params }) {
     return Response.json({ 
       error: '更新學員資料失敗',
       details: error.message || '未知錯誤',
-      hint: '請檢查：1. 學員 ID 是否正確 2. 資料格式是否正確 3. 資料庫連接是否正常'
+      hint: '請檢查：1. 學員 ID 是否正確 2. 資料格式是否正確 3. 資料庫連接是否正常',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 })
-  } finally {
-    const prismaInstance = getPrisma()
-    await prismaInstance.$disconnect()
   }
 }

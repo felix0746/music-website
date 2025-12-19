@@ -920,14 +920,29 @@ async function handleCancellation(userId, message, replyToken) {
         if (refundRequest === '是') {
           // 根據付款狀況決定退費政策
           const paidAmount = parseAmount(user.paymentAmount)
-          const enrollmentDate = new Date(user.enrollmentDate)
-          const daysSinceEnrollment = Math.floor((new Date() - enrollmentDate) / (1000 * 60 * 60 * 24))
+          
+          // 計算開課前剩餘天數
+          let daysUntilCourseStart = null
+          if (user.courseStartDate) {
+            const courseStartDate = new Date(user.courseStartDate)
+            const now = new Date()
+            // 計算開課日期 - 今天的日期（以天為單位）
+            daysUntilCourseStart = Math.floor((courseStartDate - now) / (1000 * 60 * 60 * 24))
+          }
           
           if (user.paymentStatus === 'PAID' || user.paymentStatus === 'PARTIAL') {
             // 有付款（全額或部分），需要退費
             if (paidAmount > 0) {
-              if (daysSinceEnrollment <= 7) {
-                // 7天內取消：全額退還已付金額
+              // 如果沒有設定開課日期，使用報名日期作為備用計算方式
+              if (daysUntilCourseStart === null) {
+                const enrollmentDate = new Date(user.enrollmentDate)
+                const daysSinceEnrollment = Math.floor((new Date() - enrollmentDate) / (1000 * 60 * 60 * 24))
+                // 如果報名後超過 7 天，視為超過 7 天
+                daysUntilCourseStart = daysSinceEnrollment <= 7 ? 7 : -1
+              }
+              
+              if (daysUntilCourseStart >= 0 && daysUntilCourseStart <= 7) {
+                // 開課前 7 天內取消：全額退還已付金額
                 replyMessage += `💰 退費政策：
 • 開課前 7 天內取消：全額退費
 • 您已付款：${user.paymentAmount || '0'} 元
@@ -936,7 +951,7 @@ async function handleCancellation(userId, message, replyToken) {
 
 我們會盡快為您處理退費事宜！`
               } else {
-                // 7天後取消：部分退費（50%）
+                // 開課前超過 7 天或已開課：部分退費（50%）
                 const refundAmount = Math.floor(paidAmount * 0.5)
                 replyMessage += `💰 退費政策：
 • 開課前 7 天後取消：部分退費（50%）
@@ -1619,14 +1634,29 @@ async function handleRefundRequest(userId, replyToken, refundRequest) {
     if (refundRequest === '是' || refundRequest === '需要退費') {
       // 根據付款狀況決定退費政策
       const paidAmount = parseAmount(user.paymentAmount)
-      const enrollmentDate = new Date(user.enrollmentDate)
-      const daysSinceEnrollment = Math.floor((new Date() - enrollmentDate) / (1000 * 60 * 60 * 24))
+      
+      // 計算開課前剩餘天數
+      let daysUntilCourseStart = null
+      if (user.courseStartDate) {
+        const courseStartDate = new Date(user.courseStartDate)
+        const now = new Date()
+        // 計算開課日期 - 今天的日期（以天為單位）
+        daysUntilCourseStart = Math.floor((courseStartDate - now) / (1000 * 60 * 60 * 24))
+      }
       
       if (user.paymentStatus === 'PAID' || user.paymentStatus === 'PARTIAL') {
         // 有付款（全額或部分），需要退費
         if (paidAmount > 0) {
-          if (daysSinceEnrollment <= 7) {
-            // 7天內取消：全額退還已付金額
+          // 如果沒有設定開課日期，使用報名日期作為備用計算方式
+          if (daysUntilCourseStart === null) {
+            const enrollmentDate = new Date(user.enrollmentDate)
+            const daysSinceEnrollment = Math.floor((new Date() - enrollmentDate) / (1000 * 60 * 60 * 24))
+            // 如果報名後超過 7 天，視為超過 7 天
+            daysUntilCourseStart = daysSinceEnrollment <= 7 ? 7 : -1
+          }
+          
+          if (daysUntilCourseStart >= 0 && daysUntilCourseStart <= 7) {
+            // 開課前 7 天內取消：全額退還已付金額
             replyMessage += `💰 退費政策：
 • 開課前 7 天內取消：全額退費
 • 您已付款：${user.paymentAmount || '0'} 元
@@ -1635,7 +1665,7 @@ async function handleRefundRequest(userId, replyToken, refundRequest) {
 
 我們會盡快為您處理退費事宜！`
           } else {
-            // 7天後取消：部分退費（50%）
+            // 開課前超過 7 天或已開課：部分退費（50%）
             const refundAmount = Math.floor(paidAmount * 0.5)
             replyMessage += `💰 退費政策：
 • 開課前 7 天後取消：部分退費（50%）

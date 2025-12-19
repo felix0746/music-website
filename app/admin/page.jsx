@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 
 export default function AdminPage() {
   const [students, setStudents] = useState([])
@@ -20,6 +20,11 @@ export default function AdminPage() {
   // 通知模板狀態
   const [notificationTemplates, setNotificationTemplates] = useState({})
   const [showNotificationModal, setShowNotificationModal] = useState(false)
+  
+  // 開課日期編輯模態框狀態
+  const [showCourseStartDateModal, setShowCourseStartDateModal] = useState(false)
+  const [editingStudent, setEditingStudent] = useState(null)
+  const [courseStartDateValue, setCourseStartDateValue] = useState('')
   
   // 防止重複發送訊息的狀態
   const [sendingMessages, setSendingMessages] = useState(new Set()) // 追蹤正在發送的訊息
@@ -90,6 +95,22 @@ export default function AdminPage() {
   // 切換卡片展開狀態
   const toggleCardExpansion = (studentId) => {
     setExpandedCards(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(studentId)) {
+        newSet.delete(studentId)
+      } else {
+        newSet.add(studentId)
+      }
+      return newSet
+    })
+  }
+
+  // 桌面版表格行展開狀態
+  const [expandedRows, setExpandedRows] = useState(new Set())
+
+  // 切換表格行展開狀態
+  const toggleRowExpansion = (studentId) => {
+    setExpandedRows(prev => {
       const newSet = new Set(prev)
       if (newSet.has(studentId)) {
         newSet.delete(studentId)
@@ -796,6 +817,83 @@ export default function AdminPage() {
     }
   }
 
+
+  // 開啟編輯開課日期模態框
+  const handleEditCourseStartDate = (studentId, currentDate) => {
+    const student = students.find(s => s.id === studentId)
+    if (!student) return
+
+    setEditingStudent(student)
+    const currentDateStr = currentDate 
+      ? new Date(currentDate).toISOString().split('T')[0] 
+      : ''
+    setCourseStartDateValue(currentDateStr)
+    setShowCourseStartDateModal(true)
+  }
+
+  // 儲存開課日期
+  const handleSaveCourseStartDate = async () => {
+    if (!editingStudent) return
+
+    try {
+      // 驗證日期格式
+      let dateValue = null
+      if (courseStartDateValue.trim() !== '') {
+        const date = new Date(courseStartDateValue)
+        if (isNaN(date.getTime())) {
+          alert('❌ 無效的日期格式，請使用 YYYY-MM-DD 格式')
+          return
+        }
+        dateValue = courseStartDateValue // 保持 YYYY-MM-DD 格式，讓後端處理
+      }
+      
+      const updateData = {
+        courseStartDate: dateValue
+      }
+
+      const response = await fetch(`/api/admin/students/${editingStudent.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: '更新失敗' }))
+        const errorMessage = errorData.error || errorData.details || '更新失敗'
+        const errorHint = errorData.hint ? `\n\n${errorData.hint}` : ''
+        throw new Error(`${errorMessage}${errorHint}`)
+      }
+
+      const result = await response.json()
+
+      // 即時更新畫面上該學生的狀態
+      const updatedDate = updateData.courseStartDate 
+        ? new Date(updateData.courseStartDate).toISOString() 
+        : null
+      setStudents(students.map(s => 
+        s.id === editingStudent.id ? { ...s, courseStartDate: updatedDate } : s
+      ))
+      invalidateCache() // 清理緩存
+      
+      // 關閉模態框
+      setShowCourseStartDateModal(false)
+      setEditingStudent(null)
+      setCourseStartDateValue('')
+      
+      alert(`✅ ${result.message || '開課日期更新成功！'}`)
+    } catch (error) {
+      console.error("更新開課日期失敗:", error)
+      const errorMessage = error.message || '更新開課日期時發生錯誤'
+      alert(`❌ ${errorMessage}`)
+    }
+  }
+
+  // 取消編輯開課日期
+  const handleCancelCourseStartDate = () => {
+    setShowCourseStartDateModal(false)
+    setEditingStudent(null)
+    setCourseStartDateValue('')
+  }
 
   // 更新學生付款狀態的函式
   const handleUpdateStatus = async (studentId, newStatus) => {
@@ -1963,6 +2061,34 @@ export default function AdminPage() {
                           {new Date(student.createdAt).toLocaleDateString('zh-TW')}
                         </span>
                       </div>
+
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">開課日期:</span>
+                        <div className="text-right">
+                          {student.courseStartDate ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-900">
+                                {new Date(student.courseStartDate).toLocaleDateString('zh-TW')}
+                              </span>
+                              <button
+                                onClick={() => handleEditCourseStartDate(student.id, student.courseStartDate)}
+                                className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                title="編輯開課日期"
+                              >
+                                編輯
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleEditCourseStartDate(student.id, null)}
+                              className="text-xs text-gray-400 hover:text-blue-600 underline"
+                              title="設定開課日期"
+                            >
+                              未設定
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     {/* 展開/收起按鈕 */}
@@ -2206,24 +2332,27 @@ export default function AdminPage() {
                 </th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900 w-20">姓名</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">課程</th>
-                <th className="px-6 py-3 text-sm font-semibold text-slate-900">LINE 資訊</th>
-                <th className="px-6 py-3 text-sm font-semibold text-slate-900">註冊日期</th>
+                <th className="px-6 py-3 text-sm font-semibold text-slate-900">開課日期</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">報名狀態</th>
                 <th className="px-6 py-3 text-sm font-semibold text-slate-900">付款狀態</th>
-                <th className="px-6 py-3 text-sm font-semibold text-slate-900">退款狀態</th>
-                <th className="px-6 py-3 text-sm font-semibold text-slate-900">付款資訊</th>
-                <th className="px-6 py-3 text-sm font-semibold text-slate-900">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white">
-              {filteredStudents?.map((student) => (
-                <tr key={student.id}>
-                  <td className="px-6 py-4 text-sm text-slate-700">
+              {filteredStudents?.map((student) => {
+                const isExpanded = expandedRows.has(student.id)
+                return (
+                  <React.Fragment key={student.id}>
+                    <tr 
+                      className={`cursor-pointer hover:bg-slate-50 transition-colors ${isExpanded ? 'bg-slate-50' : ''}`}
+                      onClick={() => toggleRowExpansion(student.id)}
+                    >
+                  <td className="px-6 py-4 text-sm text-slate-700" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selectedStudents.includes(student.id)}
                       onChange={() => toggleStudentSelection(student.id)}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      onClick={(e) => e.stopPropagation()}
                     />
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-700 whitespace-nowrap">{student.name}</td>
@@ -2232,30 +2361,28 @@ export default function AdminPage() {
                       {getCourseName(student.course)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-600">
-                    <div className="text-xs">
-                      {student.lineUserId ? (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-green-700">已連結 LINE</span>
-                          <span className="text-slate-500 font-mono text-xs">
-                            ID: {student.lineUserId?.substring(0, 8)}...
-                          </span>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(student.lineUserId)
-                              alert('LINE ID 已複製到剪貼簿！')
-                            }}
-                            className="text-blue-600 hover:text-blue-800 underline text-xs"
-                          >
-                            複製完整 ID
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400">未連結</span>
-                      )}
-                    </div>
+                  <td className="px-6 py-4 text-sm text-slate-600" onClick={(e) => e.stopPropagation()}>
+                    {student.courseStartDate ? (
+                      <div className="flex items-center gap-2">
+                        <span>{formatDate(student.courseStartDate)}</span>
+                        <button
+                          onClick={() => handleEditCourseStartDate(student.id, student.courseStartDate)}
+                          className="text-blue-600 hover:text-blue-800 text-xs underline"
+                          title="編輯開課日期"
+                        >
+                          編輯
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleEditCourseStartDate(student.id, null)}
+                        className="text-gray-400 hover:text-blue-600 text-xs underline"
+                        title="設定開課日期"
+                      >
+                        未設定
+                      </button>
+                    )}
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-500">{formatDate(student.createdAt)}</td>
                   <td className="px-6 py-4 text-sm">
                     {student.enrollmentStatus === 'ACTIVE' ? (
                       <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
@@ -2294,27 +2421,71 @@ export default function AdminPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-sm">
-                    {student.refundStatus === 'NONE' ? (
-                      <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-600/10">
-                        無退款
-                      </span>
-                    ) : student.refundStatus === 'PENDING' ? (
-                      <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700 ring-1 ring-inset ring-yellow-600/20">
-                        處理中
-                      </span>
-                    ) : student.refundStatus === 'COMPLETED' ? (
-                      <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                        已完成
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
-                        已拒絕
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-600">
-                    {student.refundStatus === 'COMPLETED' ? (
+                </tr>
+                {/* 展開的詳細資訊行 */}
+                {isExpanded && (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-4 bg-slate-50 border-t border-slate-200">
+                      <div className="space-y-4">
+                        {/* 基本資訊 */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">LINE 資訊：</span>
+                            <div className="mt-1">
+                              {student.lineUserId ? (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium text-green-700">已連結</span>
+                                  <span className="text-slate-500 font-mono text-xs">
+                                    {student.lineUserId?.substring(0, 12)}...
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(student.lineUserId)
+                                      alert('LINE ID 已複製到剪貼簿！')
+                                    }}
+                                    className="text-blue-600 hover:text-blue-800 underline text-xs"
+                                  >
+                                    複製
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400">未連結</span>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">註冊日期：</span>
+                            <div className="mt-1 text-gray-900">{formatDate(student.createdAt)}</div>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">退款狀態：</span>
+                            <div className="mt-1">
+                              {student.refundStatus === 'NONE' ? (
+                                <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-600/10">
+                                  無退款
+                                </span>
+                              ) : student.refundStatus === 'PENDING' ? (
+                                <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700 ring-1 ring-inset ring-yellow-600/20">
+                                  處理中
+                                </span>
+                              ) : student.refundStatus === 'COMPLETED' ? (
+                                <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                                  已完成
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
+                                  已拒絕
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 付款資訊 */}
+                        <div className="border-t border-slate-200 pt-4">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">付款資訊</h4>
+                          <div className="space-y-2">
+                            {student.refundStatus === 'COMPLETED' ? (
                       <div className="space-y-2">
                         {/* 已退款的基本資訊 */}
                         <div className="flex items-center gap-2 text-xs flex-wrap">
@@ -2491,90 +2662,95 @@ export default function AdminPage() {
                         <div className="text-blue-600 font-medium mt-1">課程: {getCourseName(student.course)}</div>
                         <div className="text-purple-600 font-medium">應付: {getCoursePrice(student.course)}</div>
                       </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <div className="flex gap-2 flex-wrap">
-                      <div className="flex gap-1">
-                      {student.enrollmentStatus === 'ACTIVE' ? (
-                        student.paymentStatus === 'UNPAID' ? (
-                          <button
-                            onClick={() => handleUpdateStatus(student.id, 'PAID')}
-                            className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                          >
-                            標記為已付款
-                          </button>
-                          ) : student.paymentStatus === 'PARTIAL' ? (
-                            <>
-                              <button
-                                onClick={() => handleUpdateStatus(student.id, 'PAID')}
-                                className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                              >
-                                標記為已付款
-                              </button>
-                              <button
-                                onClick={() => handleSendSupplementReminder(student.id)}
-                                disabled={sendingMessages.has(student.id)}
-                                className={`rounded px-2 py-1 text-xs font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
-                                  sendingMessages.has(student.id)
-                                    ? 'bg-gray-400 cursor-not-allowed focus-visible:outline-gray-400'
-                                    : 'bg-yellow-600 hover:bg-yellow-500 focus-visible:outline-yellow-600'
-                                }`}
-                              >
-                                {sendingMessages.has(student.id) ? '發送中...' : '發送補付提醒'}
-                              </button>
-                            </>
-                        ) : (
-                          <button
-                            onClick={() => handleUpdateStatus(student.id, 'UNPAID')}
-                            className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-                          >
-                            標記為未付款
-                          </button>
-                        )
-                      ) : student.enrollmentStatus === 'CANCELLED' ? (
-                          <>
-                            <button
-                              onClick={() => handleRestoreEnrollment(student.id)}
-                              className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                            >
-                              恢復報名
-                            </button>
-                            {student.refundStatus === 'NONE' ? (
-                          <button
-                            onClick={() => handleRefund(student.id, 'PENDING')}
-                            className="rounded bg-blue-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                          >
-                            處理退款
-                          </button>
-                        ) : student.refundStatus === 'PENDING' ? (
-                          <button
-                            onClick={() => handleRefund(student.id, 'COMPLETED')}
-                            className="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                          >
-                            完成退款
-                          </button>
-                        ) : (
-                          <span className="text-xs text-green-600 font-medium">已退款</span>
                             )}
-                          </>
-                      ) : (
-                        <span className="text-xs text-gray-400">-</span>
-                      )}
+                          </div>
+                        </div>
+
+                        {/* 操作按鈕 */}
+                        <div className="border-t border-slate-200 pt-4">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2">操作</h4>
+                          <div className="flex gap-2 flex-wrap">
+                            {student.enrollmentStatus === 'ACTIVE' ? (
+                              student.paymentStatus === 'UNPAID' ? (
+                                <button
+                                  onClick={() => handleUpdateStatus(student.id, 'PAID')}
+                                  className="rounded bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                                >
+                                  標記為已付款
+                                </button>
+                              ) : student.paymentStatus === 'PARTIAL' ? (
+                                <>
+                                  <button
+                                    onClick={() => handleUpdateStatus(student.id, 'PAID')}
+                                    className="rounded bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                                  >
+                                    標記為已付款
+                                  </button>
+                                  <button
+                                    onClick={() => handleSendSupplementReminder(student.id)}
+                                    disabled={sendingMessages.has(student.id)}
+                                    className={`rounded px-3 py-1.5 text-xs font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                                      sendingMessages.has(student.id)
+                                        ? 'bg-gray-400 cursor-not-allowed focus-visible:outline-gray-400'
+                                        : 'bg-yellow-600 hover:bg-yellow-500 focus-visible:outline-yellow-600'
+                                    }`}
+                                  >
+                                    {sendingMessages.has(student.id) ? '發送中...' : '發送補付提醒'}
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => handleUpdateStatus(student.id, 'UNPAID')}
+                                  className="rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                                >
+                                  標記為未付款
+                                </button>
+                              )
+                            ) : student.enrollmentStatus === 'CANCELLED' ? (
+                              <>
+                                <button
+                                  onClick={() => handleRestoreEnrollment(student.id)}
+                                  className="rounded bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                                >
+                                  恢復報名
+                                </button>
+                                {student.refundStatus === 'NONE' ? (
+                                  <button
+                                    onClick={() => handleRefund(student.id, 'PENDING')}
+                                    className="rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                                  >
+                                    處理退款
+                                  </button>
+                                ) : student.refundStatus === 'PENDING' ? (
+                                  <button
+                                    onClick={() => handleRefund(student.id, 'COMPLETED')}
+                                    className="rounded bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                                  >
+                                    完成退款
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-green-600 font-medium">已退款</span>
+                                )}
+                              </>
+                            ) : null}
+                            
+                            {/* 通用聯繫按鈕 */}
+                            <button
+                              onClick={() => handleSendLineMessage(student.id)}
+                              className="rounded bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-purple-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600"
+                              title={`聯繫 ${student.name}`}
+                            >
+                              💬 聯繫
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      
-                      {/* 通用聯繫按鈕 */}
-                      <button
-                        onClick={() => handleSendLineMessage(student.id)}
-                        className="rounded bg-purple-600 px-2 py-1 text-xs font-semibold text-white shadow-sm hover:bg-purple-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600"
-                        title={`聯繫 ${student.name}`}
-                      >
-                        💬 聯繫
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                )}
+                  </React.Fragment>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -2764,6 +2940,82 @@ export default function AdminPage() {
               <button
                 onClick={() => setShowNotificationModal(false)}
                 className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 開課日期編輯模態框 */}
+      {showCourseStartDateModal && editingStudent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800">
+              設定開課日期
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              學員：<span className="font-medium text-gray-900">{editingStudent.name}</span>
+            </p>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                開課日期
+              </label>
+              <input
+                type="date"
+                value={courseStartDateValue}
+                onChange={(e) => setCourseStartDateValue(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                留空則清除開課日期（點擊下方「清除日期」按鈕）
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleSaveCourseStartDate}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                確定
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm('確定要清除開課日期嗎？')) {
+                    setCourseStartDateValue('')
+                    // 立即保存空值
+                    const updateData = { courseStartDate: null }
+                    fetch(`/api/admin/students/${editingStudent.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(updateData),
+                    }).then(response => {
+                      if (response.ok) {
+                        setStudents(students.map(s => 
+                          s.id === editingStudent.id ? { ...s, courseStartDate: null } : s
+                        ))
+                        invalidateCache()
+                        setShowCourseStartDateModal(false)
+                        setEditingStudent(null)
+                        setCourseStartDateValue('')
+                        alert('✅ 開課日期已清除')
+                      }
+                    }).catch(error => {
+                      console.error("清除開課日期失敗:", error)
+                      alert('❌ 清除開課日期時發生錯誤')
+                    })
+                  }
+                }}
+                className="px-4 py-2 bg-orange-300 text-orange-700 rounded-md hover:bg-orange-400 transition-colors"
+                title="清除開課日期"
+              >
+                清除日期
+              </button>
+              <button
+                onClick={handleCancelCourseStartDate}
+                className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
               >
                 取消
               </button>
