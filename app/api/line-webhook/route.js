@@ -1,6 +1,18 @@
 import { Client } from '@line/bot-sdk'
 import { PrismaClient } from '@prisma/client'
 import crypto from 'crypto'
+import {
+  getCourseName,
+  getCoursePrice,
+  createCoursesCarousel,
+  createPaymentInfoTemplate,
+  createPaymentReportTemplate,
+  createCancelCourseTemplate,
+  createRefundStatusTemplate,
+  createCourseQuickReply,
+  createCancelReasonQuickReply,
+  createRefundRequestQuickReply
+} from '@/lib/lineHelpers'
 
 let prisma
 let lineClient
@@ -23,24 +35,23 @@ function getLineClient() {
 }
 
 // 安全回覆訊息函數，處理 replyToken 錯誤
-async function safeReplyMessage(lineClient, replyToken, text, userId = null) {
+async function safeReplyMessage(lineClient, replyToken, message, userId = null) {
+  // 如果 message 是字串，轉換為文字訊息物件
+  const messageObj = typeof message === 'string' 
+    ? { type: 'text', text: message }
+    : message
+  
   // 如果有 replyToken，優先使用 replyMessage
   if (replyToken) {
     try {
-      await lineClient.replyMessage(replyToken, {
-        type: 'text',
-        text: text
-      })
+      await lineClient.replyMessage(replyToken, messageObj)
       return
     } catch (error) {
       console.error('回覆訊息失敗:', error.message)
       // 如果回覆失敗，且有用戶 ID，使用 pushMessage 作為備選
       if (userId) {
         try {
-          await lineClient.pushMessage(userId, {
-            type: 'text',
-            text: text
-          })
+          await lineClient.pushMessage(userId, messageObj)
           return
         } catch (pushError) {
           console.error('Push 訊息也失敗:', pushError.message)
@@ -52,10 +63,7 @@ async function safeReplyMessage(lineClient, replyToken, text, userId = null) {
   // 如果沒有 replyToken 但有用戶 ID，使用 pushMessage
   if (userId) {
     try {
-      await lineClient.pushMessage(userId, {
-        type: 'text',
-        text: text
-      })
+      await lineClient.pushMessage(userId, messageObj)
     } catch (pushError) {
       console.error('Push 訊息失敗:', pushError.message)
     }
@@ -141,6 +149,24 @@ async function handleTextMessage(event) {
       } else if (userMessage.includes('報名') || userMessage.includes('新課程') || userMessage.includes('下一季')) {
         // 用戶想要重新報名，但先檢查當前狀態
         await handleEnrollmentRequest(userId, userMessage, replyToken)
+      } else if (userMessage.includes('取消原因：') || userMessage.includes('取消原因:')) {
+        // 用戶選擇了取消原因（來自 Quick Reply）
+        const reasonMatch = userMessage.match(/取消原因[：:]\s*(.+)/)
+        if (reasonMatch) {
+          const reason = reasonMatch[1].trim()
+          await handleCancelReason(userId, replyToken, reason)
+        } else {
+          await handleCancellation(userId, userMessage, replyToken)
+        }
+      } else if (userMessage.includes('退費需求：') || userMessage.includes('退費需求:')) {
+        // 用戶選擇了退費需求（來自 Quick Reply），需要結合之前的取消原因
+        const refundMatch = userMessage.match(/退費需求[：:]\s*(.+)/)
+        if (refundMatch) {
+          const refundRequest = refundMatch[1].trim()
+          await handleRefundRequest(userId, replyToken, refundRequest)
+        } else {
+          await handleCancellation(userId, userMessage, replyToken)
+        }
       } else if (userMessage.includes('取消') || userMessage.includes('退課') || userMessage.includes('退費')) {
         // 用戶想要取消課程
         await handleCancellation(userId, userMessage, replyToken)
@@ -1024,9 +1050,52 @@ async function handlePostback(event) {
         await handlePaymentReportGuide(userId, replyToken)
         break
       
+      case 'payment_report_start':
+        // 開始付款回報流程
+        await handlePaymentReportStart(userId, replyToken)
+        break
+      
+      case 'payment_report_quick':
+        // 快速付款回報
+        await handlePaymentReportQuick(userId, replyToken)
+        break
+      
+      case 'payment_report_detail':
+        // 詳細付款回報
+        await handlePaymentReportDetail(userId, replyToken)
+        break
+      
       case 'cancel_course':
         // 取消課程
         await handleCancelCourseGuide(userId, replyToken)
+        break
+      
+      case 'cancel_reason':
+        // 選擇取消原因
+        const reason = params.get('reason')
+        await handleCancelReason(userId, replyToken, reason)
+        break
+      
+      case 'refund_status':
+        // 退費狀態查詢
+        await handleRefundStatus(userId, replyToken)
+        break
+      
+      case 'refund_policy':
+        // 查看退費政策
+        await handleRefundPolicy(userId, replyToken)
+        break
+      
+      case 'course_detail':
+        // 課程詳情
+        const course = params.get('course')
+        await handleCourseDetail(userId, replyToken, course)
+        break
+      
+      case 'enroll':
+        // 立即報名
+        const enrollCourse = params.get('course')
+        await handleEnrollFromTemplate(userId, replyToken, enrollCourse)
         break
       
       case 'contact':
@@ -1096,35 +1165,12 @@ async function handleFollow(event) {
   }
 }
 
-// 顯示課程介紹
+// 顯示課程介紹（使用輪播卡片）
 async function handleShowCourses(userId, replyToken) {
   const lineClientInstance = getLineClient()
   
-  const coursesMessage = `🎵 我們的音樂課程
-
-我們提供以下 4 種課程：
-
-1️⃣ 歌唱課 - NT$ 3,000
-   學習如何愛上自己的歌聲，大方唱出感受
-
-2️⃣ 吉他課 - NT$ 4,000
-   從基礎到進階，養成寫作好習慣
-
-3️⃣ 創作課 - NT$ 5,000
-   探索音樂創作的奧秘
-
-4️⃣ 春曲創作團班 - NT$ 6,000
-   與同好交流，一起把創作帶上舞台
-
-如需報名，請回覆：
-姓名：[您的姓名]
-課程：[歌唱課/吉他課/創作課/春曲創作團班]
-
-例如：
-姓名：張小明
-課程：歌唱課`
-
-  await safeReplyMessage(lineClientInstance, replyToken, coursesMessage)
+  const carousel = createCoursesCarousel()
+  await safeReplyMessage(lineClientInstance, replyToken, carousel, userId)
 }
 
 // 查詢報名狀態
@@ -1208,7 +1254,7 @@ ${user.paymentStatus === 'PAID' ? '✅ 您已完成報名並付款，我們會�
   }
 }
 
-// 顯示付款資訊
+// 顯示付款資訊（使用 Template Message）
 async function handlePaymentInfo(userId, replyToken) {
   const prismaInstance = getPrisma()
   const lineClientInstance = getLineClient()
@@ -1243,31 +1289,9 @@ async function handlePaymentInfo(userId, replyToken) {
       return
     }
 
-    // 已報名用戶，顯示個人付款資訊
-    const courseName = getCourseName(user.course)
-    const coursePrice = getCoursePrice(user.course)
-
-    const paymentInfo = `💳 您的付款資訊
-
-📚 報名課程：${courseName}
-💰 應付金額：${coursePrice}
-
-🏦 銀行：台灣銀行 (004)
-💳 帳號：1234567890123456
-👤 戶名：蘇文紹
-
-📝 重要提醒：
-• 請於 3 天內完成付款
-• 付款完成後，請點擊「付款回報」或回覆付款資訊
-• 我們會在確認付款後 24 小時內與您聯繫
-
-💳 付款回報格式：
-姓名: ${user.name}
-後五碼: [帳號後五碼]
-金額: [匯款金額]
-備註: [其他說明, 選填]`
-
-    await safeReplyMessage(lineClientInstance, replyToken, paymentInfo)
+    // 已報名用戶，顯示個人付款資訊 Template
+    const paymentTemplate = createPaymentInfoTemplate(user)
+    await safeReplyMessage(lineClientInstance, replyToken, paymentTemplate, userId)
 
   } catch (error) {
     console.error('顯示付款資訊時發生錯誤:', error)
@@ -1275,7 +1299,7 @@ async function handlePaymentInfo(userId, replyToken) {
   }
 }
 
-// 付款回報引導
+// 付款回報引導（使用 Template Message）
 async function handlePaymentReportGuide(userId, replyToken) {
   const prismaInstance = getPrisma()
   const lineClientInstance = getLineClient()
@@ -1290,7 +1314,90 @@ async function handlePaymentReportGuide(userId, replyToken) {
       return
     }
 
-    const guideMessage = `💳 付款回報
+    // 使用 Template Message
+    const template = createPaymentReportTemplate(user)
+    await safeReplyMessage(lineClientInstance, replyToken, template, userId)
+
+  } catch (error) {
+    console.error('付款回報引導時發生錯誤:', error)
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。')
+  }
+}
+
+// 開始付款回報流程
+async function handlePaymentReportStart(userId, replyToken) {
+  const prismaInstance = getPrisma()
+  const lineClientInstance = getLineClient()
+
+  try {
+    const user = await prismaInstance.user.findUnique({
+      where: { lineUserId: userId }
+    })
+
+    if (!user) {
+      await safeReplyMessage(lineClientInstance, replyToken, '❌ 找不到您的報名記錄，請先完成報名。')
+      return
+    }
+
+    const coursePrice = getCoursePrice(user.course)
+    const message = {
+      type: 'text',
+      text: `💳 付款回報\n\n請提供您的付款資訊：\n\n姓名: ${user.name}\n後五碼: [請輸入帳號後五碼]\n金額: [請輸入匯款金額]\n\n例如:\n後五碼: 12345\n金額: ${coursePrice.replace(/[^\d]/g, '')}`
+    }
+
+    await safeReplyMessage(lineClientInstance, replyToken, message, userId)
+
+  } catch (error) {
+    console.error('開始付款回報流程時發生錯誤:', error)
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。')
+  }
+}
+
+// 快速付款回報
+async function handlePaymentReportQuick(userId, replyToken) {
+  const prismaInstance = getPrisma()
+  const lineClientInstance = getLineClient()
+
+  try {
+    const user = await prismaInstance.user.findUnique({
+      where: { lineUserId: userId }
+    })
+
+    if (!user) {
+      await safeReplyMessage(lineClientInstance, replyToken, '❌ 找不到您的報名記錄，請先完成報名。')
+      return
+    }
+
+    const coursePrice = getCoursePrice(user.course)
+    const message = {
+      type: 'text',
+      text: `💳 快速付款回報\n\n請直接輸入：\n後五碼: [5位數字]\n金額: [匯款金額]\n\n例如:\n後五碼: 12345\n金額: ${coursePrice.replace(/[^\d]/g, '')}`
+    }
+
+    await safeReplyMessage(lineClientInstance, replyToken, message, userId)
+
+  } catch (error) {
+    console.error('快速付款回報時發生錯誤:', error)
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。')
+  }
+}
+
+// 詳細付款回報
+async function handlePaymentReportDetail(userId, replyToken) {
+  const prismaInstance = getPrisma()
+  const lineClientInstance = getLineClient()
+
+  try {
+    const user = await prismaInstance.user.findUnique({
+      where: { lineUserId: userId }
+    })
+
+    if (!user) {
+      await safeReplyMessage(lineClientInstance, replyToken, '❌ 找不到您的報名記錄，請先完成報名。')
+      return
+    }
+
+    const guideMessage = `💳 詳細付款回報
 
 請按照以下格式提供您的付款資訊：
 
@@ -1310,13 +1417,94 @@ async function handlePaymentReportGuide(userId, replyToken) {
     await safeReplyMessage(lineClientInstance, replyToken, guideMessage)
 
   } catch (error) {
-    console.error('付款回報引導時發生錯誤:', error)
+    console.error('詳細付款回報時發生錯誤:', error)
     await safeReplyMessage(lineClientInstance, replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。')
   }
 }
 
-// 取消課程引導
+// 取消課程引導（使用 Template Message）
 async function handleCancelCourseGuide(userId, replyToken) {
+  const prismaInstance = getPrisma()
+  const lineClientInstance = getLineClient()
+
+  try {
+    const user = await prismaInstance.user.findUnique({
+      where: { lineUserId: userId }
+    })
+
+    if (!user) {
+      await safeReplyMessage(lineClientInstance, replyToken, '❌ 找不到您的報名記錄，請先完成報名。')
+      return
+    }
+
+    // 如果已經取消，顯示退費狀態查詢
+    if (user.enrollmentStatus === 'CANCELLED') {
+      if (user.refundStatus !== 'NONE') {
+        // 有退費記錄，顯示退費狀態
+        const template = createRefundStatusTemplate(user)
+        await safeReplyMessage(lineClientInstance, replyToken, template, userId)
+      } else {
+        // 沒有退費記錄
+        await safeReplyMessage(lineClientInstance, replyToken, `❌ 您的課程已經取消過了。
+
+目前沒有退費記錄。
+
+如需重新報名，請回覆「報名」開始新的報名流程。`)
+      }
+      return
+    }
+
+    // 使用 Template Message
+    const template = createCancelCourseTemplate(user)
+    await safeReplyMessage(lineClientInstance, replyToken, template, userId)
+
+  } catch (error) {
+    console.error('取消課程引導時發生錯誤:', error)
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。')
+  }
+}
+
+// 處理取消原因選擇
+async function handleCancelReason(userId, replyToken, reason) {
+  const prismaInstance = getPrisma()
+  const lineClientInstance = getLineClient()
+
+  try {
+    const user = await prismaInstance.user.findUnique({
+      where: { lineUserId: userId }
+    })
+
+    if (!user) {
+      await safeReplyMessage(lineClientInstance, replyToken, '❌ 找不到您的報名記錄，請先完成報名。')
+      return
+    }
+
+    // 暫時保存取消原因到用戶的備註欄位（作為臨時儲存）
+    // 注意：這是一個簡化的方案，在生產環境中應該使用會話管理
+    await prismaInstance.user.update({
+      where: { lineUserId: userId },
+      data: {
+        paymentNotes: `[TEMP_CANCEL_REASON]${reason}`
+      }
+    })
+
+    // 詢問退費需求
+    const message = {
+      type: 'text',
+      text: `您選擇的取消原因：${reason}\n\n請選擇是否需要退費：`,
+      ...createRefundRequestQuickReply()
+    }
+
+    await safeReplyMessage(lineClientInstance, replyToken, message, userId)
+
+  } catch (error) {
+    console.error('處理取消原因時發生錯誤:', error)
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。')
+  }
+}
+
+// 處理退費需求選擇
+async function handleRefundRequest(userId, replyToken, refundRequest) {
   const prismaInstance = getPrisma()
   const lineClientInstance = getLineClient()
 
@@ -1335,27 +1523,75 @@ async function handleCancelCourseGuide(userId, replyToken) {
       return
     }
 
-    const guideMessage = `❌ 取消課程申請
+    // 從備註欄位取得取消原因（臨時方案）
+    let reason = '未指定'
+    if (user.paymentNotes && user.paymentNotes.includes('[TEMP_CANCEL_REASON]')) {
+      reason = user.paymentNotes.replace('[TEMP_CANCEL_REASON]', '').trim()
+    }
 
-我們很遺憾聽到您想要取消課程。為了確保安全，請提供以下資訊：
+    // 驗證姓名和課程
+    const courseName = getCourseName(user.course)
 
-姓名: ${user.name}
-課程: ${getCourseName(user.course)}
-取消原因: [請簡述取消原因]
-退費需求: [是/否]
+    // 更新用戶狀態
+    await prismaInstance.user.update({
+      where: { lineUserId: userId },
+      data: {
+        enrollmentStatus: 'CANCELLED',
+        cancellationDate: new Date(),
+        cancellationReason: reason,
+        refundStatus: (refundRequest === '是' || refundRequest === '需要退費') ? 'PENDING' : 'NONE',
+        paymentNotes: null // 清除臨時資料
+      }
+    })
 
-例如:
-姓名: ${user.name}
-課程: ${getCourseName(user.course)}
-取消原因: 工作時間變更，無法配合上課時間
-退費需求: 是
+    // 構建回覆訊息
+    let replyMessage = `✅ 取消申請已收到！
 
-我們會根據您的付款狀況和取消時間來處理退費事宜。`
+取消資訊：
+• 姓名：${user.name}
+• 課程：${courseName}
+• 取消原因：${reason}
+• 退費需求：${refundRequest}
 
-    await safeReplyMessage(lineClientInstance, replyToken, guideMessage)
+`
+
+    if (refundRequest === '是' || refundRequest === '需要退費') {
+      // 根據付款狀況決定退費政策
+      if (user.paymentStatus === 'PAID') {
+        const enrollmentDate = new Date(user.enrollmentDate)
+        const daysSinceEnrollment = Math.floor((new Date() - enrollmentDate) / (1000 * 60 * 60 * 24))
+        
+        if (daysSinceEnrollment <= 7) {
+          replyMessage += `💰 退費政策：
+• 開課前 7 天內取消：全額退費
+• 退費金額：${user.paymentAmount || '待確認'}
+• 退費將在 3-5 個工作天內處理完成
+
+我們會盡快為您處理退費事宜！`
+        } else {
+          const refundAmount = user.paymentAmount ? Math.floor(parseInt(user.paymentAmount.replace(/[^\d]/g, '')) * 0.5) : '待確認'
+          replyMessage += `💰 退費政策：
+• 開課前 7 天後取消：部分退費
+• 退費金額：${refundAmount} 元
+• 退費將在 3-5 個工作天內處理完成
+
+我們會盡快為您處理退費事宜！`
+        }
+      } else {
+        replyMessage += `💰 退費政策：
+• 您尚未完成付款，無需退費
+• 課程已成功取消
+
+感謝您的理解！`
+      }
+    } else {
+      replyMessage += `課程已成功取消，感謝您的理解！`
+    }
+
+    await safeReplyMessage(lineClientInstance, replyToken, replyMessage)
 
   } catch (error) {
-    console.error('取消課程引導時發生錯誤:', error)
+    console.error('處理退費需求時發生錯誤:', error)
     await safeReplyMessage(lineClientInstance, replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。')
   }
 }
@@ -1376,4 +1612,176 @@ async function handleContact(userId, replyToken) {
 我們會盡快為您處理！`
 
   await safeReplyMessage(lineClientInstance, replyToken, contactMessage)
+}
+
+// 退費狀態查詢
+async function handleRefundStatus(userId, replyToken) {
+  const prismaInstance = getPrisma()
+  const lineClientInstance = getLineClient()
+
+  try {
+    const user = await prismaInstance.user.findUnique({
+      where: { lineUserId: userId }
+    })
+
+    if (!user) {
+      await safeReplyMessage(lineClientInstance, replyToken, '❌ 找不到您的報名記錄，請先完成報名。')
+      return
+    }
+
+    if (user.refundStatus === 'NONE') {
+      await safeReplyMessage(lineClientInstance, replyToken, `📊 退費狀態查詢
+
+您目前沒有退費記錄。
+
+如需申請退費，請先取消課程並選擇需要退費。`)
+      return
+    }
+
+    // 使用 Template Message 顯示退費狀態
+    const template = createRefundStatusTemplate(user)
+    await safeReplyMessage(lineClientInstance, replyToken, template, userId)
+
+  } catch (error) {
+    console.error('查詢退費狀態時發生錯誤:', error)
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，查詢退費狀態時發生錯誤，請稍後再試。')
+  }
+}
+
+// 查看退費政策
+async function handleRefundPolicy(userId, replyToken) {
+  const lineClientInstance = getLineClient()
+
+  const policyMessage = `💰 退費政策
+
+根據我們的退費政策：
+
+📅 退費規則：
+• 開課前 7 天內取消：全額退費
+• 開課前 7 天後取消：部分退費（50%）
+
+⏰ 退費時間：
+• 退費將在 3-5 個工作天內處理完成
+• 退費金額將退還至原付款帳戶
+
+📝 注意事項：
+• 部分付款的情況，將根據已付款金額計算退費
+• 超額付款的部分將全額退還
+• 如有疑問，請聯繫客服
+
+如需申請退費，請點擊「取消課程」開始流程。`
+
+  await safeReplyMessage(lineClientInstance, replyToken, policyMessage)
+}
+
+// 課程詳情
+async function handleCourseDetail(userId, replyToken, courseCode) {
+  const lineClientInstance = getLineClient()
+
+  const courseDetails = {
+    'singing': {
+      name: '歌唱課',
+      price: 'NT$ 3,000',
+      description: '學習如何愛上自己的歌聲，大方唱出感受',
+      features: [
+        '基礎發聲技巧',
+        '音準與節奏訓練',
+        '情感表達',
+        '舞台表現'
+      ]
+    },
+    'guitar': {
+      name: '吉他課',
+      price: 'NT$ 4,000',
+      description: '從基礎到進階，養成寫作好習慣',
+      features: [
+        '基礎和弦',
+        '指法練習',
+        '歌曲彈奏',
+        '創作技巧'
+      ]
+    },
+    'songwriting': {
+      name: '創作課',
+      price: 'NT$ 5,000',
+      description: '探索音樂創作的奧秘',
+      features: [
+        '詞曲創作',
+        '編曲技巧',
+        '音樂理論',
+        '作品錄製'
+      ]
+    },
+    'band-workshop': {
+      name: '春曲創作團班',
+      price: 'NT$ 6,000',
+      description: '與同好交流，一起把創作帶上舞台',
+      features: [
+        '團體創作',
+        '舞台演出',
+        '同好交流',
+        '作品發表'
+      ]
+    }
+  }
+
+  const course = courseDetails[courseCode] || courseDetails['singing']
+  
+  const detailMessage = `📚 ${course.name}
+
+💰 價格：${course.price}
+
+📝 課程描述：
+${course.description}
+
+✨ 課程特色：
+${course.features.map(f => `• ${f}`).join('\n')}
+
+如需報名，請回覆：
+姓名：[您的姓名]
+課程：${course.name}`
+
+  await safeReplyMessage(lineClientInstance, replyToken, detailMessage)
+}
+
+// 從 Template 報名
+async function handleEnrollFromTemplate(userId, replyToken, courseCode) {
+  const lineClientInstance = getLineClient()
+  const prismaInstance = getPrisma()
+
+  try {
+    // 檢查用戶是否已經報名
+    const existingUser = await prismaInstance.user.findUnique({
+      where: { lineUserId: userId }
+    })
+
+    if (existingUser && existingUser.enrollmentStatus === 'ACTIVE' && existingUser.paymentStatus === 'PAID') {
+      await safeReplyMessage(lineClientInstance, replyToken, `您目前已經完成報名並付款！
+
+如需報名新一季課程，請先取消現有報名。`)
+      return
+    }
+
+    const courseName = getCourseName(courseCode)
+    
+    const message = {
+      type: 'text',
+      text: `🎵 報名「${courseName}」
+
+請提供您的姓名：
+
+姓名：[您的姓名]
+
+例如：
+姓名：張小明
+
+我們會立即為您處理報名並發送付款資訊！`
+    }
+
+    await safeReplyMessage(lineClientInstance, replyToken, message, userId)
+
+  } catch (error) {
+    console.error('從 Template 報名時發生錯誤:', error)
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。')
+  }
 }

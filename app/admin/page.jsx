@@ -1515,7 +1515,18 @@ export default function AdminPage() {
     <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-12">
       {/* 手機版標題 */}
       <div className="block sm:hidden mb-4">
-        <h1 className="text-xl font-bold text-slate-900 mb-2">學員管理後台</h1>
+        <div className="flex justify-between items-center mb-2">
+          <h1 className="text-xl font-bold text-slate-900">學員管理後台</h1>
+          <a
+            href="/admin/rich-menu"
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-semibold flex items-center gap-1"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            Rich Menu
+          </a>
+        </div>
         <div className="text-sm text-gray-600">
           顯示 {filteredStudents?.length || 0} / {students?.length || 0} 位學員
         </div>
@@ -1524,11 +1535,22 @@ export default function AdminPage() {
       {/* 桌面版標題 */}
       <div className="hidden sm:flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-        學員管理後台
-      </h1>
+          <div className="flex items-center gap-4 mb-2">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              學員管理後台
+            </h1>
+            <a
+              href="/admin/rich-menu"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+              Rich Menu 管理
+            </a>
+          </div>
           {lastFetch && (
-            <div className="flex items-center text-sm text-gray-500 mt-2">
+            <div className="flex items-center text-sm text-gray-500">
               <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -1651,8 +1673,6 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* 手機版按鈕區域 - 移除，改為底部固定導航 */}
-      
       {/* 搜索和篩選區域 */}
       <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
         {/* 手機版：搜索框 */}
