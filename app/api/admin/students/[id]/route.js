@@ -11,7 +11,8 @@ function getPrisma() {
 
 export async function PATCH(request, { params }) {
   try {
-    const { id } = params
+    // Next.js 16+ 中 params 是 Promise，需要 await
+    const { id } = await params
     const updateData = await request.json()
 
     // 驗證必要參數

@@ -23,7 +23,8 @@ function getLineClient() {
 
 export async function PATCH(request, { params }) {
   try {
-    const { id } = params
+    // Next.js 16+ 中 params 是 Promise，需要 await
+    const { id } = await params
     
     // 驗證參數
     if (!id) {
@@ -106,8 +107,7 @@ export async function PATCH(request, { params }) {
     console.error('退款處理錯誤:', error)
     console.error('錯誤詳情:', {
       message: error.message,
-      stack: error.stack,
-      id: params?.id
+      stack: error.stack
     })
     return Response.json({ 
       error: '退款處理失敗',
