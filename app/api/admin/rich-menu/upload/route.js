@@ -29,16 +29,25 @@ export async function POST(request) {
     const richMenuId = formData.get('richMenuId')
     const imageFile = formData.get('image')
 
-    if (!richMenuId) {
+    // 驗證參數，提供更詳細的錯誤訊息
+    if (!richMenuId || (typeof richMenuId === 'string' && richMenuId.trim() === '')) {
       return Response.json(
-        { error: '缺少 richMenuId 參數' },
+        { 
+          success: false,
+          error: '缺少 richMenuId 參數',
+          hint: '請先選擇或創建 Rich Menu，然後再上傳圖片'
+        },
         { status: 400 }
       )
     }
 
-    if (!imageFile) {
+    if (!imageFile || imageFile.size === 0) {
       return Response.json(
-        { error: '缺少 image 檔案' },
+        { 
+          success: false,
+          error: '缺少 image 檔案',
+          hint: '請選擇一個圖片檔案（PNG 或 JPEG，< 1MB）'
+        },
         { status: 400 }
       )
     }

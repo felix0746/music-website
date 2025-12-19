@@ -90,7 +90,8 @@ export default function RichMenuPage() {
 
   // 上傳圖片
   const uploadRichMenuImage = async () => {
-    if (!selectedRichMenuId) {
+    // 驗證必要參數
+    if (!selectedRichMenuId || selectedRichMenuId.trim() === '') {
       setResult({ 
         type: 'error', 
         message: '請先選擇或創建 Rich Menu',
@@ -287,7 +288,7 @@ export default function RichMenuPage() {
         </div>
 
         {/* 結果訊息 */}
-        {result.message && (
+        {result.message && result.message.trim() !== '' && (
           <div className={`p-4 rounded-lg mb-4 ${
             result.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' :
             result.type === 'error' ? 'bg-red-50 border border-red-200 text-red-800' :
