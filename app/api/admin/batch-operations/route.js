@@ -138,6 +138,24 @@ export async function POST(request) {
             })
             break
 
+          case 'updateCourseStartDate':
+            if (updateData.courseStartDate === undefined) {
+              throw new Error('缺少開課日期')
+            }
+            const dateValue = updateData.courseStartDate === null || updateData.courseStartDate === '' 
+              ? null 
+              : new Date(updateData.courseStartDate)
+            if (updateData.courseStartDate !== null && updateData.courseStartDate !== '' && isNaN(dateValue.getTime())) {
+              throw new Error('無效的日期格式')
+            }
+            updateResult = await prismaInstance.user.update({
+              where: { id: student.id },
+              data: { 
+                courseStartDate: dateValue
+              }
+            })
+            break
+
           default:
             throw new Error('不支援的操作類型')
         }
@@ -220,6 +238,12 @@ export async function GET() {
         id: 'restoreEnrollment',
         name: '恢復報名',
         description: '批量恢復學員報名狀態'
+      },
+      {
+        id: 'updateCourseStartDate',
+        name: '批量設定開課日期',
+        description: '批量設定學員的開課日期',
+        requiredFields: ['courseStartDate']
       }
     ]
 

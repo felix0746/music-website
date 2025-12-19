@@ -1306,6 +1306,75 @@ async function handleEnrollmentStatus(userId, replyToken) {
       refundStatusText = '無'
     }
 
+    // 根據狀態組合決定顯示的提示訊息
+    let statusHint = ''
+    
+    // 優先級 1：已取消 + 已退費
+    if (user.enrollmentStatus === 'CANCELLED' && user.refundStatus === 'COMPLETED') {
+      statusHint = `✅ 課程已取消，退費已完成（${user.refundAmount || '待確認'}）
+
+如需重新報名，請：
+• 回覆「報名」開始報名流程
+• 點擊「課程介紹」查看所有課程
+• 點擊「聯絡老師」如有任何問題`
+    }
+    // 優先級 2：已取消 + 退費處理中
+    else if (user.enrollmentStatus === 'CANCELLED' && user.refundStatus === 'PENDING') {
+      statusHint = `⏳ 課程已取消，退費處理中
+
+我們正在處理您的退費申請，請耐心等候。
+退費完成後會通知您。
+
+如需查詢退費狀態，請點擊「取消/退費」→「退費狀態查詢」`
+    }
+    // 優先級 3：已取消 + 未退費（但可能有部分付款）
+    else if (user.enrollmentStatus === 'CANCELLED') {
+      // 檢查是否有付款需要退費
+      const paidAmount = parseAmount(user.paymentAmount)
+      if (paidAmount > 0) {
+        statusHint = `❌ 課程已取消
+
+您已付款 ${user.paymentAmount || '0'} 元，如需申請退費，請：
+• 點擊「取消/退費」→「申請退費」
+• 或聯繫客服處理退費事宜`
+      } else {
+        statusHint = `❌ 課程已取消
+
+如需重新報名，請：
+• 回覆「報名」開始報名流程
+• 點擊「課程介紹」查看所有課程`
+      }
+    }
+    // 優先級 4：有效報名 + 已付款
+    else if (user.enrollmentStatus === 'ACTIVE' && user.paymentStatus === 'PAID') {
+      statusHint = `✅ 您已完成報名並付款，我們會盡快與您聯繫安排課程！
+
+如有任何問題，請點擊「聯絡老師」聯繫我們。`
+    }
+    // 優先級 5：有效報名 + 部分付款
+    else if (user.enrollmentStatus === 'ACTIVE' && user.paymentStatus === 'PARTIAL') {
+      const shortAmount = calculateShortAmount(user)
+      statusHint = `⚠️ 您尚未完成付款，請盡快補付剩餘金額。
+
+尚需補付：${shortAmount} 元
+
+請選擇：
+• 點擊「付款資訊」查看付款方式
+• 點擊「付款回報」回報付款資訊`
+    }
+    // 優先級 6：有效報名 + 未付款
+    else if (user.enrollmentStatus === 'ACTIVE') {
+      statusHint = `📝 請盡快完成付款以確認報名。
+
+請選擇：
+• 點擊「付款資訊」查看付款方式
+• 點擊「付款回報」回報付款資訊`
+    }
+    // 其他情況
+    else {
+      statusHint = `📋 如需重新報名，請回覆「報名」或點擊「課程介紹」查看所有課程。`
+    }
+
     const statusMessage = `📋 您的報名狀態
 
 👤 姓名：${user.name}
@@ -1318,9 +1387,7 @@ async function handleEnrollmentStatus(userId, replyToken) {
 • 付款狀態：${paymentStatusText}
 • 退費狀態：${refundStatusText}
 
-${user.paymentStatus === 'PAID' ? '✅ 您已完成報名並付款，我們會盡快與您聯繫安排課程！' : 
-  user.paymentStatus === 'PARTIAL' ? '⚠️ 您尚未完成付款，請盡快補付剩餘金額。' : 
-  '📝 請盡快完成付款以確認報名。'}`
+${statusHint}`
 
     await safeReplyMessage(lineClientInstance, replyToken, statusMessage)
 
@@ -1863,29 +1930,103 @@ async function handleEnrollFromTemplate(userId, replyToken, courseCode) {
     })
 
     if (existingUser && existingUser.enrollmentStatus === 'ACTIVE' && existingUser.paymentStatus === 'PAID') {
-      await safeReplyMessage(lineClientInstance, replyToken, `您目前已經完成報名並付款！
+      await safeReplyMessage(lineClientInstance, replyToken, `✅ 您目前已經完成報名並付款！
 
-如需報名新一季課程，請先取消現有報名。`)
+如需報名新一季課程，請先取消現有報名後再重新報名。
+
+如有任何疑問，請點擊「聯絡老師」聯繫我們。`)
       return
     }
 
     const courseName = getCourseName(courseCode)
+    const coursePrice = getCoursePrice(courseCode)
     
-    const message = {
-      type: 'text',
-      text: `🎵 報名「${courseName}」
+    // 課程特色資訊
+    const courseDetails = {
+      'singing': {
+        description: '學習如何愛上自己的歌聲，大方唱出感受',
+        features: ['基礎發聲技巧', '音準與節奏訓練', '情感表達', '舞台表現']
+      },
+      'guitar': {
+        description: '從基礎到進階，養成寫作好習慣',
+        features: ['基礎和弦', '指法練習', '歌曲彈奏', '創作技巧']
+      },
+      'songwriting': {
+        description: '探索音樂創作的奧秘',
+        features: ['詞曲創作', '編曲技巧', '音樂理論', '作品錄製']
+      },
+      'band-workshop': {
+        description: '與同好交流，一起把創作帶上舞台',
+        features: ['團體創作', '舞台演出', '同好交流', '作品發表']
+      },
+      'spring-composition-group': {
+        description: '與同好交流，一起把創作帶上舞台',
+        features: ['團體創作', '舞台演出', '同好交流', '作品發表']
+      }
+    }
+    
+    const course = courseDetails[courseCode] || courseDetails['singing']
+    
+    // 優化的報名訊息
+    const enrollmentMessage = `🎵 感謝您選擇「${courseName}」！
 
-請提供您的姓名：
+📋 課程資訊
+━━━━━━━━━━━━━━━━━━
+💰 課程價格：${coursePrice}
+📝 課程簡介：${course.description}
 
+✨ 課程特色：
+${course.features.map(f => `  • ${f}`).join('\n')}
+
+📝 報名流程
+━━━━━━━━━━━━━━━━━━
+請提供您的姓名，我們會立即為您處理報名並發送付款資訊。
+
+💡 請按照以下格式回覆：
 姓名：[您的姓名]
 
-例如：
+📌 範例：
 姓名：張小明
 
-我們會立即為您處理報名並發送付款資訊！`
+我們收到您的報名資訊後，會立即為您建立報名記錄並提供付款方式，讓您能盡快開始您的音樂學習之旅！
+
+如有任何問題，歡迎隨時聯繫我們。`
+    
+    // 創建 Quick Reply 選項（提供常見姓名格式範例）
+    const quickReply = {
+      type: 'text',
+      text: enrollmentMessage,
+      quickReply: {
+        items: [
+          {
+            type: 'action',
+            action: {
+              type: 'message',
+              label: '📝 查看報名格式',
+              text: '姓名：'
+            }
+          },
+          {
+            type: 'action',
+            action: {
+              type: 'message',
+              label: '❓ 我有問題',
+              text: '我有報名相關問題'
+            }
+          },
+          {
+            type: 'action',
+            action: {
+              type: 'message',
+              label: '📚 查看其他課程',
+              text: '課程介紹'
+            }
+          }
+        ]
+      }
     }
 
-    await safeReplyMessage(lineClientInstance, replyToken, message, userId)
+    await safeReplyMessage(lineClientInstance, replyToken, quickReply, userId)
 
   } catch (error) {
     console.error('從 Template 報名時發生錯誤:', error)

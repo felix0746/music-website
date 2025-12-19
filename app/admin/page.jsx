@@ -16,6 +16,7 @@ export default function AdminPage() {
   const [batchOperation, setBatchOperation] = useState('')
   const [batchMessage, setBatchMessage] = useState('')
   const [batchTemplate, setBatchTemplate] = useState('')
+  const [batchCourseStartDate, setBatchCourseStartDate] = useState('')
   
   // 通知模板狀態
   const [notificationTemplates, setNotificationTemplates] = useState({})
@@ -128,13 +129,21 @@ export default function AdminPage() {
       const result = await response.json()
       
       if (result.success) {
-        alert(`✅ LINE API 連線正常！\n\nToken 長度: ${result.details.tokenLength} 字元`)
+        const details = result.details || {}
+        alert(`✅ LINE API 連線正常！\n\n` +
+              `Token 長度: ${details.tokenLength || '未知'} 字元\n` +
+              `Bot 名稱: ${details.botName || '未知'}\n` +
+              `Bot ID: ${details.botId || '未知'}`)
       } else {
-        alert(`❌ LINE API 連線失敗：\n\n${result.error}\n\n${result.details}`)
+        const errorMsg = `❌ LINE API 連線失敗\n\n` +
+                        `錯誤: ${result.error || '未知錯誤'}\n` +
+                        `${result.details ? `詳情: ${result.details}\n` : ''}` +
+                        `${result.hint ? `\n提示: ${result.hint}` : ''}`
+        alert(errorMsg)
       }
     } catch (error) {
       console.error('測試 LINE 連線失敗:', error)
-      alert('❌ 測試 LINE 連線時發生錯誤。')
+      alert(`❌ 測試 LINE 連線時發生錯誤。\n\n${error.message || '請檢查網路連線或稍後再試'}`)
     }
   }
 
@@ -1490,14 +1499,37 @@ export default function AdminPage() {
       return
     }
 
+    // 驗證開課日期格式（如果是批量設定開課日期）
+    if (batchOperation === 'updateCourseStartDate') {
+      if (batchCourseStartDate.trim() === '') {
+        if (!confirm('確定要清除所有選中學員的開課日期嗎？')) {
+          return
+        }
+      } else {
+        const date = new Date(batchCourseStartDate)
+        if (isNaN(date.getTime())) {
+          alert('❌ 無效的日期格式，請使用 YYYY-MM-DD 格式')
+          return
+        }
+      }
+    }
+
     try {
+      // 構建 updateData
+      let updateData = {}
+      if (batchOperation === 'cancelEnrollment') {
+        updateData.reason = batchMessage
+      } else if (batchOperation === 'updateCourseStartDate') {
+        updateData.courseStartDate = batchCourseStartDate.trim() === '' ? null : batchCourseStartDate
+      }
+
       const response = await fetch('/api/admin/batch-operations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           operation: batchOperation,
           studentIds: selectedStudents,
-          updateData: { reason: batchMessage }
+          updateData: updateData
         })
       })
 
@@ -1507,6 +1539,9 @@ export default function AdminPage() {
         alert(`批量操作完成！\n成功：${result.summary.success} 個\n失敗：${result.summary.failed} 個`)
         setShowBatchModal(false)
         setSelectedStudents([])
+        setBatchOperation('')
+        setBatchMessage('')
+        setBatchCourseStartDate('')
         fetchStudents() // 重新載入資料
       } else {
         alert(`操作失敗：${result.error}`)
@@ -1651,161 +1686,184 @@ export default function AdminPage() {
       </div>
 
       {/* 桌面版標題 */}
-      <div className="hidden sm:flex justify-between items-center mb-8">
-        <div>
-          <div className="flex items-center gap-4 mb-2">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-              學員管理後台
-            </h1>
-            <a
-              href="/admin/rich-menu"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-              Rich Menu 管理
-            </a>
-          </div>
-          {lastFetch && (
-            <div className="flex items-center text-sm text-gray-500">
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              數據狀態：{isCacheValid() ? '緩存中' : '已過期'}
-              <span className="ml-1">
-                ({Math.floor((Date.now() - lastFetch) / 1000 / 60)}分鐘前更新)
-              </span>
+      <div className="hidden sm:block mb-8">
+        {/* 標題區域 */}
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-4 mb-3">
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                學員管理後台
+              </h1>
+              <a
+                href="/admin/rich-menu"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold flex items-center gap-2 shadow-sm"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                Rich Menu 管理
+              </a>
             </div>
-          )}
+            {lastFetch && (
+              <div className="flex items-center text-sm text-gray-500">
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                數據狀態：{isCacheValid() ? '緩存中' : '已過期'}
+                <span className="ml-1">
+                  ({Math.floor((Date.now() - lastFetch) / 1000 / 60)}分鐘前更新)
+                </span>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex gap-3 flex-wrap">
-          <button
-            onClick={testLineConnection}
-            className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <span className="hidden sm:inline">測試 LINE</span>
-            <span className="sm:hidden">LINE</span>
-          </button>
-          
-          <button
-            onClick={() => setShowNotificationModal(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0-15 0v5h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0 15 0v5z" />
-            </svg>
-            <span className="hidden sm:inline">批量通知</span>
-            <span className="sm:hidden">通知</span>
-          </button>
-          
-          <button
-            onClick={() => setShowBatchModal(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <span className="hidden sm:inline">批量操作</span>
-            <span className="sm:hidden">操作</span>
-          </button>
-          
-          <div className="relative group">
+
+        {/* 操作按鈕區域 - 分組顯示 */}
+        <div className="space-y-3">
+          {/* 主要操作按鈕組 */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mr-2">主要操作</span>
+            <div className="h-px flex-1 bg-gray-200"></div>
+          </div>
+          <div className="flex gap-2 flex-wrap">
             <button
-              className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm"
+              onClick={testLineConnection}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              <span className="hidden sm:inline">匯出資料</span>
-              <span className="sm:hidden">匯出</span>
+              測試 LINE
             </button>
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 hidden group-hover:block">
-              <div className="py-1">
-                <button
-                  onClick={() => handleExportData('csv')}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  CSV 格式
-                </button>
-                <button
-                  onClick={() => handleExportData('json')}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  JSON 格式
-                </button>
+            
+            <button
+              onClick={() => setShowNotificationModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0-15 0v5h5l-5 5-5-5h5v-5a7.5 7.5 0 0 0 15 0v5z" />
+              </svg>
+              批量通知
+            </button>
+            
+            <button
+              onClick={() => setShowBatchModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              批量操作
+            </button>
+          </div>
+
+          {/* 資料操作按鈕組 */}
+          <div className="flex items-center gap-2 flex-wrap mt-4">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mr-2">資料操作</span>
+            <div className="h-px flex-1 bg-gray-200"></div>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <div className="relative group">
+              <button
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                匯出資料
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10 hidden group-hover:block border border-gray-200">
+                <div className="py-1">
+                  <button
+                    onClick={() => handleExportData('csv')}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    CSV 格式
+                  </button>
+                  <button
+                    onClick={() => handleExportData('json')}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    JSON 格式
+                  </button>
+                </div>
               </div>
             </div>
+            
+            <button
+              onClick={refreshStudents}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium shadow-sm"
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  載入中...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  刷新資料
+                </>
+              )}
+            </button>
           </div>
-          
-          <button
-            onClick={refreshStudents}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-          >
-            {isLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span className="hidden sm:inline">載入中...</span>
-                <span className="sm:hidden">載入</span>
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span className="hidden sm:inline">刷新資料</span>
-                <span className="sm:hidden">刷新</span>
-              </>
-            )}
-          </button>
 
-          {/* 歸檔管理按鈕 */}
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
-            title="歸檔管理"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8l6 6 6-6" />
-            </svg>
-            <span className="hidden sm:inline">歸檔管理</span>
-            <span className="sm:hidden">歸檔</span>
-          </button>
+          {/* 歸檔操作按鈕組 */}
+          <div className="flex items-center gap-2 flex-wrap mt-4">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mr-2">歸檔管理</span>
+            <div className="h-px flex-1 bg-gray-200"></div>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setShowArchived(!showArchived)}
+              className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-colors font-medium ${
+                showArchived 
+                  ? 'bg-gray-200 text-gray-800' 
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+              }`}
+              title="歸檔管理"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8l6 6 6-6" />
+              </svg>
+              歸檔管理
+            </button>
 
-          {/* 自動歸檔按鈕 */}
-          <button
-            onClick={handleAutoArchive}
-            className="flex items-center gap-2 px-3 py-2 text-sm bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-md transition-colors"
-            title="自動歸檔30天前的退款學員"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="hidden sm:inline">自動歸檔</span>
-            <span className="sm:hidden">歸檔</span>
-          </button>
+            <button
+              onClick={handleAutoArchive}
+              className="flex items-center gap-2 px-4 py-2 text-sm bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-lg transition-colors font-medium"
+              title="自動歸檔30天前的退款學員"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              自動歸檔
+            </button>
+          </div>
         </div>
       </div>
 
       {/* 搜索和篩選區域 */}
-      <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
+      <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4 sm:p-5 shadow-sm">
         {/* 手機版：搜索框 */}
-        <div className="block sm:hidden">
+        <div className="block sm:hidden mb-4">
           <div className="relative">
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="搜索學員姓名..."
-              className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+              className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
             />
             {isSearching && (
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <svg className="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -1818,7 +1876,7 @@ export default function AdminPage() {
         <div className="hidden sm:grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* 搜索框 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
               搜索學員姓名
             </label>
             <div className="relative">
@@ -1827,7 +1885,7 @@ export default function AdminPage() {
                 placeholder="輸入學員姓名..."
                 value={searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
               />
               {isSearching && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -1842,13 +1900,13 @@ export default function AdminPage() {
           
           {/* 付款狀態篩選 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
               付款狀態
             </label>
             <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white"
             >
               <option value="ALL">全部</option>
               <option value="PAID">已付款</option>
@@ -1859,13 +1917,13 @@ export default function AdminPage() {
           
           {/* 報名狀態篩選 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
               報名狀態
             </label>
             <select
               value={enrollmentFilter}
               onChange={(e) => setEnrollmentFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white"
             >
               <option value="ALL">全部</option>
               <option value="ACTIVE">有效報名</option>
@@ -1876,13 +1934,13 @@ export default function AdminPage() {
           
           {/* 課程篩選 */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
               課程類型
             </label>
             <select
               value={courseFilter}
               onChange={(e) => setCourseFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white"
             >
               <option value="ALL">全部課程</option>
               <option value="歌唱課">歌唱課</option>
@@ -1933,10 +1991,10 @@ export default function AdminPage() {
         </div>
         
         {/* 清除篩選和高級篩選按鈕 */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
           <button
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
@@ -1954,8 +2012,11 @@ export default function AdminPage() {
               setCourseFilter('ALL')
               resetAdvancedFilters()
             }}
-            className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
             清除所有篩選
           </button>
         </div>
@@ -2822,8 +2883,26 @@ export default function AdminPage() {
                 <option value="markAsUnpaid">標記為未付款</option>
                 <option value="cancelEnrollment">取消報名</option>
                 <option value="restoreEnrollment">恢復報名</option>
+                <option value="updateCourseStartDate">批量設定開課日期</option>
               </select>
             </div>
+
+            {batchOperation === 'updateCourseStartDate' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  開課日期
+                </label>
+                <input
+                  type="date"
+                  value={batchCourseStartDate}
+                  onChange={(e) => setBatchCourseStartDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  留空則清除所有選中學員的開課日期
+                </p>
+              </div>
+            )}
 
             {batchOperation === 'cancelEnrollment' && (
               <div className="mb-4">
@@ -2854,7 +2933,12 @@ export default function AdminPage() {
                 確認執行
               </button>
               <button
-                onClick={() => setShowBatchModal(false)}
+                onClick={() => {
+                  setShowBatchModal(false)
+                  setBatchOperation('')
+                  setBatchMessage('')
+                  setBatchCourseStartDate('')
+                }}
                 className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
               >
                 取消
