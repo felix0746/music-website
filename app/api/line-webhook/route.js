@@ -4,6 +4,9 @@ import crypto from 'crypto'
 import {
   getCourseName,
   getCoursePrice,
+  calculateShortAmount,
+  parseAmount,
+  getCoursePriceNumber,
   createCoursesCarousel,
   createPaymentInfoTemplate,
   createPaymentReportTemplate,
@@ -172,21 +175,27 @@ async function handleTextMessage(event) {
         await handleCancellation(userId, userMessage, replyToken)
       } else {
         // 發送一般回覆，提供多個選項
-        await safeReplyMessage(lineClientInstance, replyToken, `👋 歡迎回來！
+        const courseName = getCourseName(existingUser.course)
+        let generalMessage = `👋 歡迎回來！
 
-您目前已經報名過課程，請選擇您需要的服務：
+您目前已經報名過「${courseName}」，請選擇您需要的服務：
 
-💳 付款回報
-如果您已完成付款，請回覆「付款」開始回報流程
+📱 **使用 Rich Menu 快速操作**
+在聊天室下方，您可以使用圖文選單：
+• 點擊「我的報名」查看完整狀態
+• 點擊「付款資訊」查看付款方式
+• 點擊「付款回報」回報付款資訊
+• 點擊「取消/退費」取消課程
 
-📚 重新報名
-如果您想報名新一季的課程，請回覆「報名」開始新的報名流程
-
-❌ 取消課程
-如果您需要取消課程，請回覆「取消」開始取消流程
+💬 **或直接輸入文字**
+• 回覆「付款」開始付款回報流程
+• 回覆「報名」開始新的報名流程
+• 回覆「取消」開始取消流程
 
 ❓ 其他問題
-如有任何疑問，請直接告訴我們！`)
+如有任何疑問，請直接告訴我們！`
+
+        await safeReplyMessage(lineClientInstance, replyToken, generalMessage)
       }
     } else {
       // 新用戶，引導報名流程
@@ -329,16 +338,36 @@ async function handleNewUser(userId, message, replyToken) {
 
 我們會立即為您處理報名並發送付款資訊！`)
   } else {
-    // 一般歡迎訊息
-    await safeReplyMessage(lineClientInstance, replyToken, `🎵 歡迎來到 MyMusic 音樂課程！
+    // 一般歡迎訊息（與 handleFollow 中的新用戶歡迎訊息保持一致）
+    const welcomeMessage = `🎵 歡迎來到 MyMusic 音樂課程！
 
-我們提供以下課程：
-• 歌唱課 - 學習如何愛上自己的歌聲
-• 吉他課 - 從基礎到進階，養成寫作好習慣
-• 創作課 - 探索音樂創作的奧秘
-• 春曲創作團班 - 與同好交流，一起把創作帶上舞台
+感謝您加入我們的音樂課程 Bot！
 
-如需報名，請回覆「報名」開始流程！`)
+📱 **如何使用 Rich Menu（圖文選單）**
+在聊天室下方，您會看到一個圖文選單，包含以下功能：
+
+🎵 **課程介紹** - 查看所有課程詳細資訊
+📋 **我的報名** - 查詢您的報名狀態
+💳 **付款資訊** - 查看付款方式
+✅ **付款回報** - 回報您的付款資訊
+❌ **取消/退費** - 取消課程或查詢退費
+💬 **聯絡老師** - 聯繫我們
+
+💡 **快速開始**
+• 點擊「課程介紹」查看所有課程
+• 或直接回覆「報名」開始報名流程
+
+我們會盡快為您服務！`
+
+    await safeReplyMessage(lineClientInstance, replyToken, welcomeMessage)
+    
+    // 發送課程介紹卡片
+    try {
+      const carousel = createCoursesCarousel()
+      await lineClientInstance.pushMessage(userId, carousel)
+    } catch (error) {
+      console.error('發送課程介紹卡片失敗:', error)
+    }
   }
 }
 
@@ -360,9 +389,8 @@ async function handlePaymentReport(userId, message, replyToken) {
   }
   
   // 驗證付款金額
-  const expectedPrice = getCoursePrice(user.course)
-  const expectedNumber = parseInt(expectedPrice.replace(/[^\d]/g, ''))
-  const paidNumber = paymentInfo.amount ? parseInt(paymentInfo.amount.replace(/[^\d]/g, '')) : 0
+  const expectedNumber = getCoursePriceNumber(user.course)
+  const paidNumber = parseAmount(paymentInfo.amount)
   
   let enrollmentStatus = 'ACTIVE'
   let paymentStatus = 'PAID'
@@ -373,7 +401,7 @@ async function handlePaymentReport(userId, message, replyToken) {
   
   if (isSupplementPayment) {
     // 補付情況：計算累計金額
-    const previousAmount = user.paymentAmount ? parseInt(user.paymentAmount.replace(/[^\d]/g, '')) : 0
+    const previousAmount = parseAmount(user.paymentAmount)
     const totalPaid = previousAmount + paidNumber
     
     if (totalPaid < expectedNumber) {
@@ -435,7 +463,7 @@ async function handlePaymentReport(userId, message, replyToken) {
   if (paymentStatus === 'PARTIAL') {
     // 部分付款的情況
     // 計算總付款金額（包括之前的付款）
-    const previousAmount = parseInt(user.paymentAmount?.replace(/[^\d]/g, '') || '0')
+    const previousAmount = parseAmount(user.paymentAmount)
     const totalPaid = previousAmount + paidNumber
     const shortAmount = expectedNumber - totalPaid
     
@@ -905,7 +933,7 @@ async function handleCancellation(userId, message, replyToken) {
             } else {
               replyMessage += `💰 退費政策：
 • 開課前 7 天後取消：部分退費
-• 退費金額：${user.paymentAmount ? Math.floor(parseInt(user.paymentAmount.replace(/[^\d]/g, '')) * 0.5) : '待確認'}
+• 退費金額：${user.paymentAmount ? Math.floor(parseAmount(user.paymentAmount) * 0.5) : '待確認'}
 • 退費將在 3-5 個工作天內處理完成
 
 我們會盡快為您處理退費事宜！`
@@ -1148,10 +1176,7 @@ async function handleFollow(event) {
 • 點擊「取消/退費」如需取消課程
 • 點擊「聯絡老師」如有任何問題`
         } else if (existingUser.paymentStatus === 'PARTIAL') {
-          const expectedPrice = getCoursePrice(existingUser.course)
-          const expectedNumber = parseInt(expectedPrice.replace(/[^\d]/g, ''))
-          const paidNumber = existingUser.paymentAmount ? parseInt(existingUser.paymentAmount.replace(/[^\d]/g, '')) : 0
-          const shortAmount = expectedNumber - paidNumber
+          const shortAmount = calculateShortAmount(existingUser)
           
           welcomeBackMessage += `⚠️ 您已報名「${courseName}」，但付款尚未完成
 • 尚需補付：${shortAmount} 元
@@ -1224,8 +1249,7 @@ async function handleEnrollmentStatus(userId, replyToken) {
       paymentStatusText = '✅ 已付款'
     } else if (user.paymentStatus === 'PARTIAL') {
       const expectedNumber = parseInt(coursePrice.replace(/[^\d]/g, ''))
-      const paidNumber = user.paymentAmount ? parseInt(user.paymentAmount.replace(/[^\d]/g, '')) : 0
-      const shortAmount = expectedNumber - paidNumber
+      const shortAmount = calculateShortAmount(user)
       paymentStatusText = `⚠️ 部分付款（尚需補付 ${shortAmount} 元）`
     } else {
       paymentStatusText = '❌ 尚未付款'
@@ -1590,7 +1614,7 @@ async function handleRefundRequest(userId, replyToken, refundRequest) {
 
 我們會盡快為您處理退費事宜！`
         } else {
-          const refundAmount = user.paymentAmount ? Math.floor(parseInt(user.paymentAmount.replace(/[^\d]/g, '')) * 0.5) : '待確認'
+          const refundAmount = user.paymentAmount ? Math.floor(parseAmount(user.paymentAmount) * 0.5) : '待確認'
           replyMessage += `💰 退費政策：
 • 開課前 7 天後取消：部分退費
 • 退費金額：${refundAmount} 元
