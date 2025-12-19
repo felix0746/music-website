@@ -1542,7 +1542,8 @@ export default function AdminPage() {
         setBatchOperation('')
         setBatchMessage('')
         setBatchCourseStartDate('')
-        fetchStudents() // 重新載入資料
+        invalidateCache() // 清除緩存
+        fetchStudents(true) // 強制重新載入資料
       } else {
         alert(`操作失敗：${result.error}`)
       }

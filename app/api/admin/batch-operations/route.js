@@ -142,12 +142,21 @@ export async function POST(request) {
             if (updateData.courseStartDate === undefined) {
               throw new Error('缺少開課日期')
             }
-            const dateValue = updateData.courseStartDate === null || updateData.courseStartDate === '' 
-              ? null 
-              : new Date(updateData.courseStartDate)
-            if (updateData.courseStartDate !== null && updateData.courseStartDate !== '' && isNaN(dateValue.getTime())) {
-              throw new Error('無效的日期格式')
+            let dateValue = null
+            if (updateData.courseStartDate !== null && updateData.courseStartDate !== '') {
+              // 處理日期格式，確保正確解析 YYYY-MM-DD 格式
+              const dateStr = updateData.courseStartDate
+              // 如果是 YYYY-MM-DD 格式，需要加上時間部分以避免時區問題
+              const date = dateStr.includes('T') 
+                ? new Date(dateStr) 
+                : new Date(dateStr + 'T00:00:00')
+              
+              if (isNaN(date.getTime())) {
+                throw new Error('無效的日期格式')
+              }
+              dateValue = date
             }
+            
             updateResult = await prismaInstance.user.update({
               where: { id: student.id },
               data: { 

@@ -14,7 +14,8 @@ import {
   createRefundStatusTemplate,
   createCourseQuickReply,
   createCancelReasonQuickReply,
-  createRefundRequestQuickReply
+  createRefundRequestQuickReply,
+  createCourseDetailTemplate
 } from '@/lib/lineHelpers'
 
 let prisma
@@ -173,6 +174,40 @@ async function handleTextMessage(event) {
       } else if (userMessage.includes('取消') || userMessage.includes('退課') || userMessage.includes('退費')) {
         // 用戶想要取消課程
         await handleCancellation(userId, userMessage, replyToken)
+      } else if (userMessage.includes('課程介紹') || userMessage.includes('查看其他課程') || userMessage.includes('查看課程')) {
+        // 用戶想要查看課程介紹
+        await handleShowCourses(userId, replyToken)
+      } else if (userMessage === '姓名：' || userMessage === '姓名:' || userMessage.trim() === '姓名：' || userMessage.trim() === '姓名:') {
+        // 用戶點擊「查看報名格式」按鈕，顯示報名格式說明
+        await safeReplyMessage(lineClientInstance, replyToken, `📝 報名格式說明
+
+請按照以下格式提供您的報名資訊：
+
+💡 格式：
+姓名：[您的姓名]
+
+📌 範例：
+姓名：張小明
+
+我們收到您的姓名後，會立即為您建立報名記錄並提供付款方式。
+
+如有任何問題，歡迎隨時聯繫我們！`)
+      } else if (userMessage.includes('我有問題') || userMessage.includes('我有報名相關問題') || userMessage.includes('問題')) {
+        // 用戶有問題，提供幫助
+        await safeReplyMessage(lineClientInstance, replyToken, `❓ 我們很樂意為您解答！
+
+請告訴我們您遇到的問題，我們會盡快為您處理。
+
+💡 常見問題：
+• 報名相關：請回覆「報名」開始報名流程
+• 付款相關：請回覆「付款」查看付款資訊
+• 取消相關：請回覆「取消」開始取消流程
+• 課程相關：請點擊「課程介紹」查看所有課程
+
+📱 或使用 Rich Menu 快速操作：
+在聊天室下方，您可以使用圖文選單快速操作。
+
+如有其他問題，請直接告訴我們，我們會盡快回覆您！`)
       } else {
         // 發送一般回覆，提供多個選項
         const courseName = getCourseName(existingUser.course)
@@ -323,6 +358,40 @@ async function handleNewUser(userId, message, replyToken) {
 姓名：[您的姓名]
 課程：[歌唱課/吉他課/創作課/春曲創作團班]`)
     }
+  } else if (message.includes('課程介紹') || message.includes('查看其他課程') || message.includes('查看課程')) {
+    // 用戶想要查看課程介紹
+    await handleShowCourses(userId, replyToken)
+  } else if (message === '姓名：' || message === '姓名:' || message.trim() === '姓名：' || message.trim() === '姓名:') {
+    // 用戶點擊「查看報名格式」按鈕，顯示報名格式說明
+    await safeReplyMessage(lineClientInstance, replyToken, `📝 報名格式說明
+
+請按照以下格式提供您的報名資訊：
+
+💡 格式：
+姓名：[您的姓名]
+
+📌 範例：
+姓名：張小明
+
+我們收到您的姓名後，會立即為您建立報名記錄並提供付款方式。
+
+如有任何問題，歡迎隨時聯繫我們！`)
+  } else if (message.includes('我有問題') || message.includes('我有報名相關問題') || message.includes('問題')) {
+    // 用戶有問題，提供幫助
+    await safeReplyMessage(lineClientInstance, replyToken, `❓ 我們很樂意為您解答！
+
+請告訴我們您遇到的問題，我們會盡快為您處理。
+
+💡 常見問題：
+• 報名相關：請回覆「報名」開始報名流程
+• 付款相關：請回覆「付款」查看付款資訊
+• 取消相關：請回覆「取消」開始取消流程
+• 課程相關：請點擊「課程介紹」查看所有課程
+
+📱 或使用 Rich Menu 快速操作：
+在聊天室下方，您可以使用圖文選單快速操作。
+
+如有其他問題，請直接告訴我們，我們會盡快回覆您！`)
   } else if (message.includes('報名') || message.includes('課程')) {
     // 引導用戶填寫報名資訊
     await safeReplyMessage(lineClientInstance, replyToken, `🎵 歡迎報名我們的音樂課程！
@@ -1848,74 +1917,18 @@ async function handleRefundPolicy(userId, replyToken) {
   await safeReplyMessage(lineClientInstance, replyToken, policyMessage)
 }
 
-// 課程詳情
+// 課程詳情（純資訊展示，提供立即報名按鈕）
 async function handleCourseDetail(userId, replyToken, courseCode) {
   const lineClientInstance = getLineClient()
 
-  const courseDetails = {
-    'singing': {
-      name: '歌唱課',
-      price: 'NT$ 3,000',
-      description: '學習如何愛上自己的歌聲，大方唱出感受',
-      features: [
-        '基礎發聲技巧',
-        '音準與節奏訓練',
-        '情感表達',
-        '舞台表現'
-      ]
-    },
-    'guitar': {
-      name: '吉他課',
-      price: 'NT$ 4,000',
-      description: '從基礎到進階，養成寫作好習慣',
-      features: [
-        '基礎和弦',
-        '指法練習',
-        '歌曲彈奏',
-        '創作技巧'
-      ]
-    },
-    'songwriting': {
-      name: '創作課',
-      price: 'NT$ 5,000',
-      description: '探索音樂創作的奧秘',
-      features: [
-        '詞曲創作',
-        '編曲技巧',
-        '音樂理論',
-        '作品錄製'
-      ]
-    },
-    'band-workshop': {
-      name: '春曲創作團班',
-      price: 'NT$ 6,000',
-      description: '與同好交流，一起把創作帶上舞台',
-      features: [
-        '團體創作',
-        '舞台演出',
-        '同好交流',
-        '作品發表'
-      ]
-    }
+  try {
+    // 使用 Template Message 顯示課程詳情，並提供立即報名按鈕
+    const courseDetailTemplate = createCourseDetailTemplate(courseCode)
+    await safeReplyMessage(lineClientInstance, replyToken, courseDetailTemplate)
+  } catch (error) {
+    console.error('顯示課程詳情時發生錯誤:', error)
+    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，無法顯示課程詳情，請稍後再試。')
   }
-
-  const course = courseDetails[courseCode] || courseDetails['singing']
-  
-  const detailMessage = `📚 ${course.name}
-
-💰 價格：${course.price}
-
-📝 課程描述：
-${course.description}
-
-✨ 課程特色：
-${course.features.map(f => `• ${f}`).join('\n')}
-
-如需報名，請回覆：
-姓名：[您的姓名]
-課程：${course.name}`
-
-  await safeReplyMessage(lineClientInstance, replyToken, detailMessage)
 }
 
 // 從 Template 報名
@@ -1941,42 +1954,10 @@ async function handleEnrollFromTemplate(userId, replyToken, courseCode) {
     const courseName = getCourseName(courseCode)
     const coursePrice = getCoursePrice(courseCode)
     
-    // 課程特色資訊
-    const courseDetails = {
-      'singing': {
-        description: '學習如何愛上自己的歌聲，大方唱出感受',
-        features: ['基礎發聲技巧', '音準與節奏訓練', '情感表達', '舞台表現']
-      },
-      'guitar': {
-        description: '從基礎到進階，養成寫作好習慣',
-        features: ['基礎和弦', '指法練習', '歌曲彈奏', '創作技巧']
-      },
-      'songwriting': {
-        description: '探索音樂創作的奧秘',
-        features: ['詞曲創作', '編曲技巧', '音樂理論', '作品錄製']
-      },
-      'band-workshop': {
-        description: '與同好交流，一起把創作帶上舞台',
-        features: ['團體創作', '舞台演出', '同好交流', '作品發表']
-      },
-      'spring-composition-group': {
-        description: '與同好交流，一起把創作帶上舞台',
-        features: ['團體創作', '舞台演出', '同好交流', '作品發表']
-      }
-    }
-    
-    const course = courseDetails[courseCode] || courseDetails['singing']
-    
-    // 優化的報名訊息
+    // 簡潔的報名訊息（不重複課程詳情，因為用戶已經看過了）
     const enrollmentMessage = `🎵 感謝您選擇「${courseName}」！
 
-📋 課程資訊
-━━━━━━━━━━━━━━━━━━
 💰 課程價格：${coursePrice}
-📝 課程簡介：${course.description}
-
-✨ 課程特色：
-${course.features.map(f => `  • ${f}`).join('\n')}
 
 📝 報名流程
 ━━━━━━━━━━━━━━━━━━
