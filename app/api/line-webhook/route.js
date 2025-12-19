@@ -919,26 +919,43 @@ async function handleCancellation(userId, message, replyToken) {
 
         if (refundRequest === '是') {
           // 根據付款狀況決定退費政策
-          if (user.paymentStatus === 'PAID') {
-            const enrollmentDate = new Date(user.enrollmentDate)
-            const daysSinceEnrollment = Math.floor((new Date() - enrollmentDate) / (1000 * 60 * 60 * 24))
-            
-            if (daysSinceEnrollment <= 7) {
-              replyMessage += `💰 退費政策：
+          const paidAmount = parseAmount(user.paymentAmount)
+          const enrollmentDate = new Date(user.enrollmentDate)
+          const daysSinceEnrollment = Math.floor((new Date() - enrollmentDate) / (1000 * 60 * 60 * 24))
+          
+          if (user.paymentStatus === 'PAID' || user.paymentStatus === 'PARTIAL') {
+            // 有付款（全額或部分），需要退費
+            if (paidAmount > 0) {
+              if (daysSinceEnrollment <= 7) {
+                // 7天內取消：全額退還已付金額
+                replyMessage += `💰 退費政策：
 • 開課前 7 天內取消：全額退費
+• 您已付款：${user.paymentAmount || '0'} 元
 • 退費金額：${user.paymentAmount || '待確認'}
 • 退費將在 3-5 個工作天內處理完成
 
 我們會盡快為您處理退費事宜！`
-            } else {
-              replyMessage += `💰 退費政策：
-• 開課前 7 天後取消：部分退費
-• 退費金額：${user.paymentAmount ? Math.floor(parseAmount(user.paymentAmount) * 0.5) : '待確認'}
+              } else {
+                // 7天後取消：部分退費（50%）
+                const refundAmount = Math.floor(paidAmount * 0.5)
+                replyMessage += `💰 退費政策：
+• 開課前 7 天後取消：部分退費（50%）
+• 您已付款：${user.paymentAmount || '0'} 元
+• 退費金額：${refundAmount} 元
 • 退費將在 3-5 個工作天內處理完成
 
 我們會盡快為您處理退費事宜！`
+              }
+            } else {
+              // 雖然狀態是 PAID 或 PARTIAL，但實際付款金額為 0
+              replyMessage += `💰 退費政策：
+• 您尚未完成付款，無需退費
+• 課程已成功取消
+
+感謝您的理解！`
             }
           } else {
+            // 未付款（UNPAID 或 PENDING）
             replyMessage += `💰 退費政策：
 • 您尚未完成付款，無需退費
 • 課程已成功取消
@@ -1248,7 +1265,6 @@ async function handleEnrollmentStatus(userId, replyToken) {
     if (user.paymentStatus === 'PAID') {
       paymentStatusText = '✅ 已付款'
     } else if (user.paymentStatus === 'PARTIAL') {
-      const expectedNumber = parseInt(coursePrice.replace(/[^\d]/g, ''))
       const shortAmount = calculateShortAmount(user)
       paymentStatusText = `⚠️ 部分付款（尚需補付 ${shortAmount} 元）`
     } else {
@@ -1602,27 +1618,43 @@ async function handleRefundRequest(userId, replyToken, refundRequest) {
 
     if (refundRequest === '是' || refundRequest === '需要退費') {
       // 根據付款狀況決定退費政策
-      if (user.paymentStatus === 'PAID') {
-        const enrollmentDate = new Date(user.enrollmentDate)
-        const daysSinceEnrollment = Math.floor((new Date() - enrollmentDate) / (1000 * 60 * 60 * 24))
-        
-        if (daysSinceEnrollment <= 7) {
-          replyMessage += `💰 退費政策：
+      const paidAmount = parseAmount(user.paymentAmount)
+      const enrollmentDate = new Date(user.enrollmentDate)
+      const daysSinceEnrollment = Math.floor((new Date() - enrollmentDate) / (1000 * 60 * 60 * 24))
+      
+      if (user.paymentStatus === 'PAID' || user.paymentStatus === 'PARTIAL') {
+        // 有付款（全額或部分），需要退費
+        if (paidAmount > 0) {
+          if (daysSinceEnrollment <= 7) {
+            // 7天內取消：全額退還已付金額
+            replyMessage += `💰 退費政策：
 • 開課前 7 天內取消：全額退費
+• 您已付款：${user.paymentAmount || '0'} 元
 • 退費金額：${user.paymentAmount || '待確認'}
 • 退費將在 3-5 個工作天內處理完成
 
 我們會盡快為您處理退費事宜！`
-        } else {
-          const refundAmount = user.paymentAmount ? Math.floor(parseAmount(user.paymentAmount) * 0.5) : '待確認'
-          replyMessage += `💰 退費政策：
-• 開課前 7 天後取消：部分退費
+          } else {
+            // 7天後取消：部分退費（50%）
+            const refundAmount = Math.floor(paidAmount * 0.5)
+            replyMessage += `💰 退費政策：
+• 開課前 7 天後取消：部分退費（50%）
+• 您已付款：${user.paymentAmount || '0'} 元
 • 退費金額：${refundAmount} 元
 • 退費將在 3-5 個工作天內處理完成
 
 我們會盡快為您處理退費事宜！`
+          }
+        } else {
+          // 雖然狀態是 PAID 或 PARTIAL，但實際付款金額為 0
+          replyMessage += `💰 退費政策：
+• 您尚未完成付款，無需退費
+• 課程已成功取消
+
+感謝您的理解！`
         }
       } else {
+        // 未付款（UNPAID 或 PENDING）
         replyMessage += `💰 退費政策：
 • 您尚未完成付款，無需退費
 • 課程已成功取消
