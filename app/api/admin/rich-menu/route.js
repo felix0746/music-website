@@ -95,8 +95,15 @@ export async function POST(request) {
     }
   } catch (error) {
     console.error('Rich Menu 操作時發生錯誤:', error)
+    const errorMessage = error.message || '未知錯誤'
+    const errorDetails = error.originalError?.response?.data || error.originalError?.message || error.stack
+    
     return Response.json(
-      { error: 'Rich Menu 操作失敗: ' + error.message },
+      { 
+        error: 'Rich Menu 操作失敗: ' + errorMessage,
+        details: errorDetails,
+        hint: '請檢查：1. LINE_CHANNEL_ACCESS_TOKEN 是否正確設定 2. Rich Menu 配置是否符合 LINE API 規範'
+      },
       { status: 500 }
     )
   }
@@ -134,6 +141,9 @@ export async function DELETE(request) {
 // 創建 Rich Menu 定義
 async function createRichMenu(lineClient) {
   // Rich Menu 定義（3x2 配置）
+  // 尺寸：2500 x 1686
+  // 每個按鈕：寬度 833，高度 843
+  // 第一排：y=0, 第二排：y=843
   const richMenu = {
     size: {
       width: 2500,
@@ -153,7 +163,7 @@ async function createRichMenu(lineClient) {
         }
       },
       {
-        bounds: { x: 834, y: 0, width: 833, height: 843 },
+        bounds: { x: 833, y: 0, width: 834, height: 843 },
         action: {
           type: 'postback',
           data: 'action=my_enrollment',
@@ -170,7 +180,7 @@ async function createRichMenu(lineClient) {
       },
       // 第二排
       {
-        bounds: { x: 0, y: 844, width: 833, height: 843 },
+        bounds: { x: 0, y: 843, width: 833, height: 843 },
         action: {
           type: 'postback',
           data: 'action=payment_report',
@@ -178,7 +188,7 @@ async function createRichMenu(lineClient) {
         }
       },
       {
-        bounds: { x: 834, y: 844, width: 833, height: 843 },
+        bounds: { x: 833, y: 843, width: 834, height: 843 },
         action: {
           type: 'postback',
           data: 'action=cancel_course',
@@ -186,7 +196,7 @@ async function createRichMenu(lineClient) {
         }
       },
       {
-        bounds: { x: 1667, y: 844, width: 833, height: 843 },
+        bounds: { x: 1667, y: 843, width: 833, height: 843 },
         action: {
           type: 'postback',
           data: 'action=contact',
@@ -196,10 +206,17 @@ async function createRichMenu(lineClient) {
     ]
   }
 
-  // 創建 Rich Menu
-  const richMenuId = await lineClient.createRichMenu(richMenu)
-
-  return { richMenuId }
+  try {
+    // 創建 Rich Menu
+    const richMenuId = await lineClient.createRichMenu(richMenu)
+    return { richMenuId }
+  } catch (error) {
+    console.error('創建 Rich Menu 詳細錯誤:', error)
+    if (error.originalError) {
+      console.error('原始錯誤:', error.originalError.response?.data || error.originalError)
+    }
+    throw error
+  }
 }
 
 // 上傳 Rich Menu 圖片

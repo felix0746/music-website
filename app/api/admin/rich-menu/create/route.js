@@ -36,7 +36,7 @@ export async function POST() {
           }
         },
         {
-          bounds: { x: 834, y: 0, width: 833, height: 843 },
+          bounds: { x: 833, y: 0, width: 834, height: 843 },
           action: {
             type: 'postback',
             data: 'action=my_enrollment',
@@ -53,7 +53,7 @@ export async function POST() {
         },
         // 第二排
         {
-          bounds: { x: 0, y: 844, width: 833, height: 843 },
+          bounds: { x: 0, y: 843, width: 833, height: 843 },
           action: {
             type: 'postback',
             data: 'action=payment_report',
@@ -61,7 +61,7 @@ export async function POST() {
           }
         },
         {
-          bounds: { x: 834, y: 844, width: 833, height: 843 },
+          bounds: { x: 833, y: 843, width: 834, height: 843 },
           action: {
             type: 'postback',
             data: 'action=cancel_course',
@@ -69,7 +69,7 @@ export async function POST() {
           }
         },
         {
-          bounds: { x: 1667, y: 844, width: 833, height: 843 },
+          bounds: { x: 1667, y: 843, width: 833, height: 843 },
           action: {
             type: 'postback',
             data: 'action=contact',
@@ -102,10 +102,14 @@ export async function POST() {
     })
   } catch (error) {
     console.error('創建 Rich Menu 時發生錯誤:', error)
+    const errorMessage = error.message || '未知錯誤'
+    const errorDetails = error.originalError?.response?.data || error.originalError?.message || error.stack
+    
     return Response.json(
       { 
-        error: 'Rich Menu 創建失敗: ' + error.message,
-        details: error.originalError?.response?.data || error.stack
+        error: 'Rich Menu 創建失敗: ' + errorMessage,
+        details: errorDetails,
+        hint: '請檢查：1. LINE_CHANNEL_ACCESS_TOKEN 是否在 Vercel 環境變數中正確設定 2. Token 是否有效且未過期'
       },
       { status: 500 }
     )
