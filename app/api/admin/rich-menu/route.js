@@ -62,14 +62,21 @@ export async function POST(request) {
         message: 'Rich Menu 圖片上傳成功'
       })
     } else if (action === 'create_and_set') {
-      // 創建 Rich Menu 並設定為預設（一步完成）
+      // 創建 Rich Menu（注意：必須先上傳圖片才能設定為預設）
       const richMenu = await createRichMenu(lineClientInstance)
-      await lineClientInstance.setDefaultRichMenu(richMenu.richMenuId)
+      // 注意：不能立即設定為預設，必須先上傳圖片
+      // await lineClientInstance.setDefaultRichMenu(richMenu.richMenuId)
       return Response.json({
         success: true,
-        message: 'Rich Menu 創建並設定為預設成功',
+        message: 'Rich Menu 創建成功！',
         richMenuId: richMenu.richMenuId,
-        note: '請記得使用 LINE Developers Console 上傳圖片（2500x1686 像素）'
+        nextSteps: {
+          step1: '使用 LINE Developers Console 上傳圖片（2500 x 1686 像素，PNG 或 JPEG，< 1MB）',
+          step2: '上傳圖片後，使用 set_default action 設定為預設 Rich Menu',
+          step3: `Rich Menu ID: ${richMenu.richMenuId}`,
+          consoleUrl: 'https://developers.line.biz/console/',
+          note: '必須先上傳圖片才能設定為預設 Rich Menu'
+        }
       })
     } else if (action === 'set_default') {
       // 設定預設 Rich Menu

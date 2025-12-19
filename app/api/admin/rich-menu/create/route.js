@@ -84,20 +84,25 @@ export async function POST() {
     const richMenuId = await lineClientInstance.createRichMenu(richMenu)
     console.log('Rich Menu 創建成功:', richMenuId)
 
-    // 2. 設定為預設 Rich Menu
-    console.log('設定為預設 Rich Menu...')
-    await lineClientInstance.setDefaultRichMenu(richMenuId)
-    console.log('已設定為預設 Rich Menu')
+    // 注意：不能立即設定為預設，必須先上傳圖片
+    // LINE API 要求：must upload richmenu image before applying it to user
+    // 2. 設定為預設 Rich Menu（已移除，必須先上傳圖片）
+    // console.log('設定為預設 Rich Menu...')
+    // await lineClientInstance.setDefaultRichMenu(richMenuId)
+    // console.log('已設定為預設 Rich Menu')
 
     return Response.json({
       success: true,
-      message: 'Rich Menu 創建並設定為預設成功！',
+      message: 'Rich Menu 創建成功！',
       richMenuId: richMenuId,
       nextSteps: {
         step1: '準備 Rich Menu 圖片（2500 x 1686 像素，PNG 或 JPEG，< 1MB）',
         step2: '使用 LINE Developers Console 上傳圖片',
         step3: `進入您的 Channel → Messaging API → Rich Menu → 找到 ID: ${richMenuId} → 點擊「上傳圖片」`,
-        consoleUrl: 'https://developers.line.biz/console/'
+        step4: '上傳圖片後，使用以下 API 設定為預設：',
+        step5: `POST /api/admin/rich-menu {"action": "set_default", "richMenuId": "${richMenuId}"}`,
+        consoleUrl: 'https://developers.line.biz/console/',
+        note: '⚠️ 必須先上傳圖片才能設定為預設 Rich Menu'
       }
     })
   } catch (error) {
