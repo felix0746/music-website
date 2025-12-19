@@ -173,11 +173,40 @@
                         `;
                     } else {
                         resultDiv.className = 'result success';
-                        resultDiv.innerHTML = `
+                        let richMenusHtml = `
                             ✅ <strong>Rich Menu 列表</strong><br>
-                            找到 ${count} 個 Rich Menu<br>
-                            <pre>${JSON.stringify(data.richMenus || [], null, 2)}</pre>
+                            找到 ${count} 個 Rich Menu<br><br>
                         `;
+                        
+                        // 顯示每個 Rich Menu 的資訊和操作按鈕
+                        if (Array.isArray(data.richMenus) && data.richMenus.length > 0) {
+                            data.richMenus.forEach((rm, index) => {
+                                richMenusHtml += `
+                                    <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                                        <strong>Rich Menu #${index + 1}</strong><br>
+                                        <code style="background: #e0f2fe; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${rm.richMenuId}</code><br>
+                                        名稱: ${rm.name || '未命名'}<br>
+                                        尺寸: ${rm.size?.width || '?'} x ${rm.size?.height || '?'}<br>
+                                        <button 
+                                            onclick="useRichMenuId('${rm.richMenuId}')" 
+                                            style="background: #10b981; padding: 8px 16px; border: none; border-radius: 6px; color: white; cursor: pointer; font-weight: bold; margin-top: 8px;"
+                                        >
+                                            使用此 Rich Menu
+                                        </button>
+                                        <button 
+                                            onclick="setRichMenuAsDefault('${rm.richMenuId}')" 
+                                            style="background: #3b82f6; padding: 8px 16px; border: none; border-radius: 6px; color: white; cursor: pointer; font-weight: bold; margin-top: 8px; margin-left: 8px;"
+                                        >
+                                            設為預設
+                                        </button>
+                                    </div>
+                                `;
+                            });
+                        } else {
+                            richMenusHtml += `<pre>${JSON.stringify(data.richMenus || [], null, 2)}</pre>`;
+                        }
+                        
+                        resultDiv.innerHTML = richMenusHtml;
                     }
                 } else {
                     resultDiv.className = 'result error';
@@ -251,6 +280,83 @@
                 } else {
                     resultDiv.className = 'result error';
                     resultDiv.innerHTML = `❌ ${data.error || '查詢失敗'}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `❌ 錯誤: ${error.message}`;
+            }
+        }
+
+        // 使用指定的 Rich Menu ID
+        function useRichMenuId(richMenuId) {
+            const richMenuIdInput = document.getElementById('richMenuId');
+            const displayDiv = document.getElementById('currentRichMenuId');
+            const displayId = document.getElementById('displayRichMenuId');
+            
+            if (richMenuIdInput) {
+                richMenuIdInput.value = richMenuId;
+            }
+            
+            if (displayDiv && displayId) {
+                displayId.textContent = richMenuId;
+                displayDiv.style.display = 'block';
+            }
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result success';
+            resultDiv.innerHTML = `
+                ✅ <strong>已選擇 Rich Menu</strong><br>
+                Rich Menu ID: <code>${richMenuId}</code><br><br>
+                現在您可以：<br>
+                1. 使用上傳工具上傳圖片<br>
+                2. 點擊「設定為預設 Rich Menu」按鈕
+            `;
+        }
+
+        // 直接設定為預設（從列表）
+        async function setRichMenuAsDefault(richMenuId) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result info';
+            resultDiv.innerHTML = '⏳ 設定中...';
+
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'set_default',
+                        richMenuId: richMenuId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        ✅ <strong>設定成功！</strong><br>
+                        Rich Menu ID: <code>${richMenuId}</code> 已設定為預設<br><br>
+                        <strong>下一步：</strong><br>
+                        1. 關閉並重新打開 LINE<br>
+                        2. 或等待幾分鐘讓 LINE 更新<br>
+                        3. 在您的 LINE Bot 中應該會看到 Rich Menu（底部選單）<br><br>
+                        <small>如果還是沒有顯示，請確認：<br>
+                        - Rich Menu 圖片已上傳<br>
+                        - 您已加入 LINE Bot 為好友<br>
+                        - LINE 應用程式已更新到最新版本</small>
+                    `;
+                    
+                    // 更新選擇的 Rich Menu ID
+                    useRichMenuId(richMenuId);
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        ❌ <strong>設定失敗</strong><br>
+                        ${data.error || '未知錯誤'}<br>
+                        ${data.details ? `<pre>${JSON.stringify(data.details, null, 2)}</pre>` : ''}
+                    `;
                 }
             } catch (error) {
                 resultDiv.className = 'result error';
