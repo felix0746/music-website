@@ -325,12 +325,23 @@
                     let errorHtml = `❌ <strong>上傳失敗</strong><br>${data.error || '未知錯誤'}`;
                     
                     // 如果是 Rich Menu 不存在的錯誤，提供創建選項
-                    if (data.error && (data.error.includes('不存在') || data.error.includes('not found'))) {
+                    if (data.error && (data.error.includes('不存在') || data.error.includes('not found') || data.error.includes('無效'))) {
                         errorHtml += `<br><br><strong>解決方案：</strong><br>`;
-                        errorHtml += `1. 點擊下方「創建新的 Rich Menu」按鈕<br>`;
-                        errorHtml += `2. 記下返回的 Rich Menu ID<br>`;
-                        errorHtml += `3. 將 Rich Menu ID 填入上方輸入框<br>`;
-                        errorHtml += `4. 重新上傳圖片<br><br>`;
+                        
+                        // 如果有可用的 Rich Menu ID，顯示它們
+                        if (data.availableRichMenuIds && data.availableRichMenuIds.length > 0) {
+                            errorHtml += `<strong>可用的 Rich Menu ID：</strong><br>`;
+                            data.availableRichMenuIds.forEach(id => {
+                                errorHtml += `<code style="background: #e0f2fe; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin: 4px 4px 4px 0; display: inline-block;">${id}</code> `;
+                            });
+                            errorHtml += `<br><br>請從上方選擇一個正確的 Rich Menu ID，或點擊下方按鈕創建新的。<br><br>`;
+                        } else {
+                            errorHtml += `1. 點擊下方「創建新的 Rich Menu」按鈕<br>`;
+                            errorHtml += `2. 記下返回的 Rich Menu ID<br>`;
+                            errorHtml += `3. 將 Rich Menu ID 填入上方輸入框<br>`;
+                            errorHtml += `4. 重新上傳圖片<br><br>`;
+                        }
+                        
                         errorHtml += `<button onclick="createRichMenu()" style="background: #10b981; padding: 10px 20px; border: none; border-radius: 6px; color: white; cursor: pointer; font-weight: bold; margin-top: 10px;">
                             創建新的 Rich Menu
                         </button>`;

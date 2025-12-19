@@ -71,36 +71,67 @@ export async function POST(request) {
       const richMenuExists = richMenus.some(rm => rm.richMenuId === richMenuId)
       
       if (!richMenuExists) {
+        // 收集所有可用的 Rich Menu ID 用於錯誤訊息
+        const availableIds = richMenus.map(rm => rm.richMenuId).slice(0, 5) // 只顯示前 5 個
+        
         return Response.json(
           { 
             success: false,
             error: 'Rich Menu 不存在',
             details: `找不到 Rich Menu ID: ${richMenuId}`,
-            hint: '請先創建 Rich Menu，然後再上傳圖片。您可以使用 /api/admin/rich-menu 的 create action 創建。'
+            availableRichMenuIds: availableIds,
+            totalCount: richMenus.length,
+            hint: availableIds.length > 0 
+              ? `請確認 Rich Menu ID 是否正確。目前可用的 Rich Menu ID：${availableIds.join(', ')}`
+              : '請先創建 Rich Menu，然後再上傳圖片。您可以使用 /api/admin/rich-menu 的 create action 創建。'
           },
           { status: 400 }
         )
       }
+      
+      console.log(`Rich Menu 存在性檢查通過: ${richMenuId}`)
     } catch (checkError) {
       console.error('檢查 Rich Menu 時發生錯誤:', checkError)
-      // 如果檢查失敗，繼續嘗試上傳（可能是權限問題）
+      // 如果檢查失敗，記錄錯誤但繼續嘗試上傳（可能是 API 暫時性問題）
+      console.warn('繼續嘗試上傳，但 Rich Menu 存在性檢查失敗')
     }
 
     // 上傳圖片到 LINE
     try {
       await lineClientInstance.setRichMenuImage(richMenuId, buffer)
+      console.log(`Rich Menu 圖片上傳成功: ${richMenuId}`)
     } catch (uploadError) {
       // 處理 LINE API 的特定錯誤
       const statusCode = uploadError.originalError?.response?.status || 500
       const errorData = uploadError.originalError?.response?.data || {}
       
+      console.error('LINE API 上傳錯誤:', {
+        statusCode,
+        errorData,
+        message: uploadError.message,
+        richMenuId
+      })
+      
       if (statusCode === 400 || statusCode === 404) {
+        // 再次嘗試獲取 Rich Menu 列表以提供更詳細的錯誤訊息
+        let availableIds = []
+        try {
+          const richMenuList = await lineClientInstance.getRichMenuList()
+          const richMenus = richMenuList.richmenus || richMenuList || []
+          availableIds = richMenus.map(rm => rm.richMenuId).slice(0, 5)
+        } catch (listError) {
+          console.error('獲取 Rich Menu 列表失敗:', listError)
+        }
+        
         return Response.json(
           { 
             success: false,
             error: 'Rich Menu 不存在或無效',
-            details: errorData.message || uploadError.message,
-            hint: `Rich Menu ID "${richMenuId}" 可能不存在。請先創建 Rich Menu，然後再上傳圖片。`
+            details: errorData.message || uploadError.message || `LINE API 返回 ${statusCode} 錯誤`,
+            availableRichMenuIds: availableIds.length > 0 ? availableIds : undefined,
+            hint: availableIds.length > 0
+              ? `Rich Menu ID "${richMenuId}" 不存在。可用的 Rich Menu ID：${availableIds.join(', ')}`
+              : `Rich Menu ID "${richMenuId}" 可能不存在。請先創建 Rich Menu，然後再上傳圖片。`
           },
           { status: 400 }
         )
