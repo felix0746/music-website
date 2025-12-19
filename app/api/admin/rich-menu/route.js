@@ -54,7 +54,22 @@ export async function GET() {
 // POST: 創建 Rich Menu
 export async function POST(request) {
   try {
-    const { action } = await request.json()
+    // 先檢查 Content-Type 來決定如何讀取 body
+    const contentType = request.headers.get('content-type') || ''
+    
+    let bodyData = null
+    let formData = null
+    
+    // 根據 Content-Type 讀取 body（只能讀取一次）
+    if (contentType.includes('multipart/form-data')) {
+      // FormData 格式
+      formData = await request.formData()
+    } else {
+      // JSON 格式
+      bodyData = await request.json()
+    }
+    
+    const action = bodyData?.action || formData?.get('action')
     const lineClientInstance = getLineClient()
 
     if (action === 'create') {
@@ -69,11 +84,9 @@ export async function POST(request) {
     } else if (action === 'upload_image') {
       // 上傳 Rich Menu 圖片
       // 支援兩種方式：1. JSON 格式（imageUrl） 2. FormData 格式（直接上傳檔案）
-      const contentType = request.headers.get('content-type') || ''
       
-      if (contentType.includes('multipart/form-data')) {
+      if (formData) {
         // 方式一：直接上傳檔案（FormData）
-        const formData = await request.formData()
         const richMenuId = formData.get('richMenuId')
         const imageFile = formData.get('image')
         
@@ -96,9 +109,9 @@ export async function POST(request) {
           fileName: imageFile.name,
           fileSize: buffer.length
         })
-      } else {
+      } else if (bodyData) {
         // 方式二：使用圖片 URL（JSON 格式）
-        const { richMenuId, imageUrl } = await request.json()
+        const { richMenuId, imageUrl } = bodyData
         if (!richMenuId) {
           return Response.json(
             { error: '缺少 richMenuId 參數' },
@@ -110,6 +123,11 @@ export async function POST(request) {
           success: true,
           message: 'Rich Menu 圖片上傳成功'
         })
+      } else {
+        return Response.json(
+          { error: '無法解析請求資料' },
+          { status: 400 }
+        )
       }
     } else if (action === 'create_and_set') {
       // 創建 Rich Menu（注意：必須先上傳圖片才能設定為預設）
@@ -130,7 +148,13 @@ export async function POST(request) {
       })
     } else if (action === 'set_default') {
       // 設定預設 Rich Menu
-      const { richMenuId } = await request.json()
+      const richMenuId = bodyData?.richMenuId || formData?.get('richMenuId')
+      if (!richMenuId) {
+        return Response.json(
+          { error: '缺少 richMenuId 參數' },
+          { status: 400 }
+        )
+      }
       await lineClientInstance.setDefaultRichMenu(richMenuId)
       return Response.json({
         success: true,
@@ -138,7 +162,14 @@ export async function POST(request) {
       })
     } else if (action === 'set_user') {
       // 為特定用戶設定 Rich Menu
-      const { userId, richMenuId } = await request.json()
+      const userId = bodyData?.userId || formData?.get('userId')
+      const richMenuId = bodyData?.richMenuId || formData?.get('richMenuId')
+      if (!userId || !richMenuId) {
+        return Response.json(
+          { error: '缺少 userId 或 richMenuId 參數' },
+          { status: 400 }
+        )
+      }
       await lineClientInstance.linkRichMenuToUser(userId, richMenuId)
       return Response.json({
         success: true,
