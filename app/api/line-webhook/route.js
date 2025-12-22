@@ -580,16 +580,59 @@ async function handlePaymentReport(userId, message, replyToken) {
     return
   }
 
-  // 檢查訊息是否包含付款資訊（後五碼、金額為必需，銀行為可選但可幫助識別）
+  // 解析付款回報資訊（先解析看看有什麼資訊）
+  const paymentInfo = parsePaymentMessage(message)
+  
+  // 檢查是否有銀行資訊但沒有後五碼和金額（用戶剛選擇了銀行）
+  const hasBankOnly = paymentInfo.bank && !paymentInfo.reference && !paymentInfo.amount
+  
+  if (hasBankOnly) {
+    // 用戶只選擇了銀行，保存銀行資訊並顯示下一步引導
+    await prismaInstance.user.update({
+      where: { lineUserId: userId },
+      data: {
+        paymentNotes: `[PENDING_BANK]${paymentInfo.bank}`
+      }
+    })
+    
+    const coursePrice = getCoursePrice(user.course)
+    const nextStepMessage = `✅ 已選擇銀行：${paymentInfo.bank}
+
+請繼續提供以下資訊：
+
+• 後五碼：[帳號後五碼]
+• 金額：${coursePrice}
+
+例如：
+後五碼: 12345
+金額: ${coursePrice.replace(/[^\d]/g, '')}
+備註: 已匯款完成（選填）
+
+我們會立即確認您的付款！`
+    
+    await safeReplyMessage(lineClientInstance, replyToken, nextStepMessage)
+    return
+  }
+  
+  // 檢查是否有保存的銀行資訊（從 paymentNotes 中讀取）
+  let savedBank = null
+  if (user.paymentNotes && user.paymentNotes.includes('[PENDING_BANK]')) {
+    const match = user.paymentNotes.match(/\[PENDING_BANK\](.+)/)
+    if (match && match[1]) {
+      savedBank = match[1].trim()
+      // 如果解析出的銀行資訊為空，使用保存的銀行
+      if (!paymentInfo.bank) {
+        paymentInfo.bank = savedBank
+      }
+    }
+  }
+  
+  // 檢查訊息是否包含付款資訊（後五碼、金額為必需）
   // 判斷條件：需要後五碼（或5位數字）AND 金額（或3位以上數字）
-  // 如果有銀行關鍵字會更好識別，但不是必需的
   const hasPaymentInfo = message && (
     (message.includes('後五碼') || message.includes('後5碼') || /\d{5}/.test(message)) &&
     (message.includes('金額') || /\d{3,}/.test(message))
   )
-  
-  // 額外檢查：如果有銀行關鍵字，加強識別度（但仍需要後五碼和金額）
-  const hasBankKeyword = message && message.includes('銀行')
 
   // 如果只是關鍵字（如「付款」、「匯款」）而沒有實際付款資訊，顯示引導
   if (!hasPaymentInfo && (message === '付款' || message === '匯款' || message.includes('付款回報') || message.trim().length < 10)) {
@@ -598,10 +641,7 @@ async function handlePaymentReport(userId, message, replyToken) {
     return
   }
   
-  // 解析付款回報資訊
-  const paymentInfo = parsePaymentMessage(message)
-  
-  // 如果解析後沒有關鍵資訊，也顯示引導
+  // 如果解析後沒有關鍵資訊（後五碼和金額），也顯示引導
   if (!paymentInfo.reference && !paymentInfo.amount) {
     await showPaymentReportGuide(userId, replyToken, user)
     return
@@ -619,6 +659,12 @@ async function handlePaymentReport(userId, message, replyToken) {
   // 檢查是否為補付情況
   const isSupplementPayment = user.paymentStatus === 'PARTIAL'
   
+  // 清除臨時銀行標記（如果有的話），用於構建 paymentNotes
+  let basePaymentNotes = user.paymentNotes || ''
+  if (basePaymentNotes.includes('[PENDING_BANK]')) {
+    basePaymentNotes = basePaymentNotes.replace(/\[PENDING_BANK\][^\n]*/g, '').trim()
+  }
+  
   if (isSupplementPayment) {
     // 補付情況：計算累計金額
     const previousAmount = parseAmount(user.paymentAmount)
@@ -628,16 +674,16 @@ async function handlePaymentReport(userId, message, replyToken) {
       // 補付後仍不足
       const shortAmount = expectedNumber - totalPaid
       paymentStatus = 'PARTIAL'
-      paymentNotes = `${user.paymentNotes || ''}\n[補付 ${paidNumber} 元，累計 ${totalPaid} 元，尚需補付 ${shortAmount} 元]`
+      paymentNotes = basePaymentNotes ? `${basePaymentNotes}\n[補付 ${paidNumber} 元，累計 ${totalPaid} 元，尚需補付 ${shortAmount} 元]` : `[補付 ${paidNumber} 元，累計 ${totalPaid} 元，尚需補付 ${shortAmount} 元]`
     } else if (totalPaid === expectedNumber) {
       // 補付完成
       paymentStatus = 'PAID'
-      paymentNotes = `${user.paymentNotes || ''}\n[補付 ${paidNumber} 元，累計 ${totalPaid} 元，付款完成]`
+      paymentNotes = basePaymentNotes ? `${basePaymentNotes}\n[補付 ${paidNumber} 元，累計 ${totalPaid} 元，付款完成]` : `[補付 ${paidNumber} 元，累計 ${totalPaid} 元，付款完成]`
     } else {
       // 補付過多
       const overAmount = totalPaid - expectedNumber
       paymentStatus = 'PAID'
-      paymentNotes = `${user.paymentNotes || ''}\n[補付 ${paidNumber} 元，累計 ${totalPaid} 元，超額 ${overAmount} 元，將安排退費]`
+      paymentNotes = basePaymentNotes ? `${basePaymentNotes}\n[補付 ${paidNumber} 元，累計 ${totalPaid} 元，超額 ${overAmount} 元，將安排退費]` : `[補付 ${paidNumber} 元，累計 ${totalPaid} 元，超額 ${overAmount} 元，將安排退費]`
     }
     
     // 更新付款金額為累計金額
@@ -662,6 +708,18 @@ async function handlePaymentReport(userId, message, replyToken) {
   }
   
   // 更新用戶付款狀態和詳細資訊
+  // 清除臨時保存的銀行資訊（如果有的話），因為已經保存到 paymentBank 欄位了
+  let finalPaymentNotes = paymentNotes
+  if (user.paymentNotes && user.paymentNotes.includes('[PENDING_BANK]')) {
+    // 清除臨時銀行標記，保留其他備註（如果 paymentNotes 有值）
+    // 如果 paymentNotes 原本就是空的，則設為 null
+    if (finalPaymentNotes && finalPaymentNotes.includes('[PENDING_BANK]')) {
+      finalPaymentNotes = finalPaymentNotes.replace(/\[PENDING_BANK\][^\n]*/g, '').trim() || null
+    } else if (!finalPaymentNotes) {
+      finalPaymentNotes = null
+    }
+  }
+  
   await prismaInstance.user.update({
     where: { lineUserId: userId },
     data: { 
@@ -672,7 +730,7 @@ async function handlePaymentReport(userId, message, replyToken) {
       paymentMethod: paymentInfo.method,
       paymentBank: paymentInfo.bank,
       paymentDate: new Date(),
-      paymentNotes: paymentNotes,
+      paymentNotes: finalPaymentNotes,
       cancellationDate: enrollmentStatus === 'CANCELLED' ? new Date() : null,
       cancellationReason: enrollmentStatus === 'CANCELLED' ? '付款金額不足' : null
     }

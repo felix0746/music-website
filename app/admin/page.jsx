@@ -402,13 +402,15 @@ export default function AdminPage() {
     // 日期範圍篩選
     if (advancedFilters.dateRange.start) {
       const startDate = new Date(advancedFilters.dateRange.start)
-      const studentDate = new Date(student.createdAt)
+      // 優先使用 enrollmentDate，如果沒有則使用 createdAt
+      const studentDate = new Date(student.enrollmentDate || student.createdAt)
       if (studentDate < startDate) return false
     }
-    
+
     if (advancedFilters.dateRange.end) {
       const endDate = new Date(advancedFilters.dateRange.end)
-      const studentDate = new Date(student.createdAt)
+      // 優先使用 enrollmentDate，如果沒有則使用 createdAt
+      const studentDate = new Date(student.enrollmentDate || student.createdAt)
       if (studentDate > endDate) return false
     }
 
@@ -2121,7 +2123,11 @@ export default function AdminPage() {
                       <div className="flex justify-between">
                         <span className="text-gray-600">註冊日期:</span>
                         <span className="text-gray-900">
-                          {new Date(student.createdAt).toLocaleDateString('zh-TW')}
+                          {student.enrollmentDate 
+                            ? new Date(student.enrollmentDate).toLocaleDateString('zh-TW')
+                            : student.createdAt 
+                              ? new Date(student.createdAt).toLocaleDateString('zh-TW')
+                              : '未記錄'}
                         </span>
                       </div>
 
@@ -2521,7 +2527,13 @@ export default function AdminPage() {
                           </div>
                           <div>
                             <span className="text-gray-600">註冊日期：</span>
-                            <div className="mt-1 text-gray-900">{formatDate(student.createdAt)}</div>
+                            <div className="mt-1 text-gray-900">
+                              {student.enrollmentDate 
+                                ? formatDate(student.enrollmentDate)
+                                : student.createdAt 
+                                  ? formatDate(student.createdAt)
+                                  : '未記錄'}
+                            </div>
                           </div>
                           <div>
                             <span className="text-gray-600">退款狀態：</span>
