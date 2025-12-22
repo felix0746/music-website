@@ -207,8 +207,9 @@ async function handleTextMessage(event) {
           }
         }
         // 如果不符合上述條件，繼續往下處理（可能是新用戶或格式問題）
-      } else if (userMessage.includes('付款') || userMessage.includes('匯款') || userMessage.includes('後五碼')) {
+      } else if (userMessage.includes('付款') || userMessage.includes('匯款') || userMessage.includes('後五碼') || userMessage.includes('銀行：') || userMessage.includes('銀行:')) {
         // 統一使用 handlePaymentReport，它會自動判斷是顯示引導還是處理付款資訊
+        // 包括「銀行：xxx」格式，因為這通常是從銀行選擇選單來的
         await handlePaymentReport(userId, userMessage, replyToken)
       } else if (userMessage.includes('報名') || userMessage.includes('新課程') || userMessage.includes('下一季')) {
         // 統一使用 handleNewUser，它會自動判斷是顯示引導還是處理報名
