@@ -15,7 +15,8 @@ import {
   createCourseQuickReply,
   createCancelReasonQuickReply,
   createRefundRequestQuickReply,
-  createCourseDetailTemplate
+  createCourseDetailTemplate,
+  createBankSelectionQuickReply
 } from '@/lib/lineHelpers'
 
 let prisma
@@ -138,6 +139,31 @@ async function handleTextMessage(event) {
 
     if (existingUser) {
       // 如果已經報名，檢查用戶意圖
+      
+      // 優先檢查：如果用戶輸入純文字（看起來像姓名），且有保存的課程選擇，直接處理報名
+      // 這通常是因為用戶從「立即報名」引導中直接輸入姓名（例如「Felix」）
+      if (existingUser.paymentNotes && existingUser.paymentNotes.includes('[PENDING_COURSE]')) {
+        // 檢查輸入是否為純文字（不包含特殊關鍵字），且長度合理（可能是姓名）
+        const isPlainText = !userMessage.includes('姓名：') && !userMessage.includes('姓名:') && 
+                            !userMessage.includes('課程：') && !userMessage.includes('課程:') &&
+                            !userMessage.includes('付款') && !userMessage.includes('取消') && 
+                            !userMessage.includes('報名') && !userMessage.includes('課程介紹') &&
+                            userMessage.length > 0 && userMessage.length < 50 // 合理姓名長度
+        
+        if (isPlainText) {
+          // 提取保存的課程代碼
+          const match = existingUser.paymentNotes.match(/\[PENDING_COURSE\]([a-z0-9-]+)/i)
+          if (match && match[1]) {
+            const pendingCourseCode = match[1].trim()
+            const courseName = getCourseName(pendingCourseCode)
+            // 將用戶輸入視為姓名，構建報名訊息
+            const enrollmentMessage = `姓名：${userMessage}\n課程：${courseName}`
+            await handleReEnrollment(userId, enrollmentMessage, replyToken)
+            return
+          }
+        }
+      }
+      
       // 優先檢查是否為取消課程格式（包含取消原因和退費需求）
       if ((userMessage.includes('姓名：') || userMessage.includes('姓名:')) && 
           (userMessage.includes('課程：') || userMessage.includes('課程:')) &&
@@ -1734,27 +1760,27 @@ async function showPaymentReportGuide(userId, replyToken, user = null) {
 
     const guideMessage = `💳 付款回報
 
-請按照以下格式提供您的付款資訊：
+請先選擇您的匯款銀行：
 
-姓名: ${user.name}
-銀行: [匯款銀行名稱]
-後五碼: [帳號後五碼]
-金額: [匯款金額]
-備註: [其他說明, 選填]
-
-常見銀行：
-${bankList}
+完成銀行選擇後，請繼續提供：
+• 後五碼：[帳號後五碼]
+• 金額：${coursePrice}
 
 例如:
-姓名: ${user.name}
-銀行: 台新銀行
 後五碼: 12345
 金額: ${coursePrice.replace(/[^\d]/g, '')}
-備註: 已匯款完成
+備註: 已匯款完成（選填）
 
 我們會立即確認您的付款！`
 
-    await safeReplyMessage(lineClientInstance, replyToken, guideMessage)
+    // 創建帶有銀行選擇選單的訊息
+    const messageWithBankMenu = {
+      type: 'text',
+      text: guideMessage,
+      ...createBankSelectionQuickReply()
+    }
+
+    await safeReplyMessage(lineClientInstance, replyToken, messageWithBankMenu, userId)
 
   } catch (error) {
     console.error('顯示付款回報引導時發生錯誤:', error)
