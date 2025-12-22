@@ -469,9 +469,9 @@ export default function AdminPage() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* 註冊日期範圍 */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-gray-700 mb-1">註冊日期範圍</label>
-            <div className="flex gap-2">
+            <div className="flex gap-2 min-w-0">
               <input
                 type="date"
                 value={advancedFilters.dateRange.start}
@@ -479,7 +479,7 @@ export default function AdminPage() {
                   ...prev,
                   dateRange: { ...prev.dateRange, start: e.target.value }
                 }))}
-                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                className="flex-1 min-w-0 px-2 py-1 text-xs border border-gray-300 rounded text-gray-900 bg-white"
               />
               <input
                 type="date"
@@ -488,15 +488,15 @@ export default function AdminPage() {
                   ...prev,
                   dateRange: { ...prev.dateRange, end: e.target.value }
                 }))}
-                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                className="flex-1 min-w-0 px-2 py-1 text-xs border border-gray-300 rounded text-gray-900 bg-white"
               />
             </div>
           </div>
 
           {/* 付款金額範圍 */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-gray-700 mb-1">付款金額範圍</label>
-            <div className="flex gap-2">
+            <div className="flex gap-2 min-w-0">
               <input
                 type="number"
                 placeholder="最小"
@@ -505,7 +505,7 @@ export default function AdminPage() {
                   ...prev,
                   paymentAmount: { ...prev.paymentAmount, min: e.target.value }
                 }))}
-                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                className="flex-1 min-w-0 px-2 py-1 text-xs border border-gray-300 rounded text-gray-900 bg-white placeholder:text-gray-400"
               />
               <input
                 type="number"
@@ -515,13 +515,13 @@ export default function AdminPage() {
                   ...prev,
                   paymentAmount: { ...prev.paymentAmount, max: e.target.value }
                 }))}
-                className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                className="flex-1 min-w-0 px-2 py-1 text-xs border border-gray-300 rounded text-gray-900 bg-white placeholder:text-gray-400"
               />
             </div>
           </div>
 
           {/* LINE 帳號 */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-gray-700 mb-1">LINE 帳號</label>
             <select
               value={advancedFilters.hasLineId}
@@ -529,7 +529,7 @@ export default function AdminPage() {
                 ...prev,
                 hasLineId: e.target.value
               }))}
-              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-gray-900 bg-white"
             >
               <option value="ALL">全部</option>
               <option value="YES">有 LINE</option>
@@ -538,7 +538,7 @@ export default function AdminPage() {
           </div>
 
           {/* 退費狀態 */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-gray-700 mb-1">退費狀態</label>
             <select
               value={advancedFilters.refundStatus}
@@ -546,7 +546,7 @@ export default function AdminPage() {
                 ...prev,
                 refundStatus: e.target.value
               }))}
-              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-gray-900 bg-white"
             >
               <option value="ALL">全部</option>
               <option value="NONE">無退費</option>
@@ -557,7 +557,7 @@ export default function AdminPage() {
           </div>
 
           {/* Email */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
             <select
               value={advancedFilters.hasEmail}
@@ -565,7 +565,7 @@ export default function AdminPage() {
                 ...prev,
                 hasEmail: e.target.value
               }))}
-              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-gray-900 bg-white"
             >
               <option value="ALL">全部</option>
               <option value="YES">有 Email</option>
@@ -1666,7 +1666,8 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-12">
+    <div className="min-h-screen bg-white">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-12">
       {/* 手機版標題 */}
       <div className="block sm:hidden mb-4">
         <div className="flex justify-between items-center mb-2">
@@ -1907,7 +1908,7 @@ export default function AdminPage() {
             <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white text-gray-900"
             >
               <option value="ALL">全部</option>
               <option value="PAID">已付款</option>
@@ -1924,7 +1925,7 @@ export default function AdminPage() {
             <select
               value={enrollmentFilter}
               onChange={(e) => setEnrollmentFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white text-gray-900"
             >
               <option value="ALL">全部</option>
               <option value="ACTIVE">有效報名</option>
@@ -1941,7 +1942,7 @@ export default function AdminPage() {
             <select
               value={courseFilter}
               onChange={(e) => setCourseFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white text-gray-900"
             >
               <option value="ALL">全部課程</option>
               <option value="歌唱課">歌唱課</option>
@@ -1958,7 +1959,7 @@ export default function AdminPage() {
             <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 bg-white"
             >
               <option value="ALL">全部付款狀態</option>
               <option value="PAID">已付款</option>
@@ -1969,7 +1970,7 @@ export default function AdminPage() {
             <select
               value={enrollmentFilter}
               onChange={(e) => setEnrollmentFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 bg-white"
             >
               <option value="ALL">全部報名狀態</option>
               <option value="ACTIVE">有效報名</option>
@@ -1981,7 +1982,7 @@ export default function AdminPage() {
           <select
             value={courseFilter}
             onChange={(e) => setCourseFilter(e.target.value)}
-            className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 bg-white"
           >
             <option value="ALL">全部課程</option>
             <option value="歌唱課">歌唱課</option>
@@ -3190,6 +3191,7 @@ export default function AdminPage() {
 
       {/* 為底部導航欄預留空間 */}
       <div className="h-20 sm:hidden"></div>
+      </div>
     </div>
   )
 }
