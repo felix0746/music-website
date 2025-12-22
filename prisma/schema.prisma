@@ -27,6 +27,7 @@ model User {
   // vvv 付款詳細資訊 vvv
   paymentAmount    String?   // 付款金額
   paymentMethod    String?   // 付款方式
+  paymentBank      String?   // 匯出銀行（學員匯款的銀行）
   paymentReference String?   // 付款參考號碼（後五碼等）
   paymentDate      DateTime? // 付款日期
   paymentNotes     String?   // 付款備註

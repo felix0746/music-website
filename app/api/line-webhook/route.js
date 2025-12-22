@@ -318,19 +318,27 @@ async function handleNewUser(userId, message, replyToken) {
 
 📝 重要提醒：
 • 請於 3 天內完成付款
-• 付款完成後，請回覆「姓名」與「帳號後五碼」
+• 付款完成後，請回覆「姓名」、「銀行」與「帳號後五碼」
 • 我們會在確認付款後 24 小時內與您聯繫
 
 💳 付款回報格式
 請按照以下格式提供您的付款資訊：
 
 姓名: [您的姓名]
+銀行: [匯款銀行名稱]
 後五碼: [帳號後五碼]
 金額: [匯款金額]
 備註: [其他說明, 選填]
 
+常見銀行：
+• 台灣銀行、土地銀行、合作金庫、第一銀行、華南銀行
+• 彰化銀行、上海銀行、富邦銀行、國泰世華、中國信託
+• 台新銀行、玉山銀行、元大銀行、永豐銀行、兆豐銀行
+• 郵局、其他
+
 例如:
 姓名: 張小明
+銀行: 台新銀行
 後五碼: 12345
 金額: 3000
 備註: 已匯款完成
@@ -519,6 +527,7 @@ async function handlePaymentReport(userId, message, replyToken) {
       paymentReference: paymentInfo.reference,
       paymentAmount: paymentInfo.amount,
       paymentMethod: paymentInfo.method,
+      paymentBank: paymentInfo.bank,
       paymentDate: new Date(),
       paymentNotes: paymentNotes,
       cancellationDate: enrollmentStatus === 'CANCELLED' ? new Date() : null,
@@ -540,6 +549,9 @@ async function handlePaymentReport(userId, message, replyToken) {
     confirmMessage += `您的付款資訊：\n`
     if (paymentInfo.name) {
       confirmMessage += `姓名：${paymentInfo.name}\n`
+    }
+    if (paymentInfo.bank) {
+      confirmMessage += `銀行：${paymentInfo.bank}\n`
     }
     if (paymentInfo.reference) {
       confirmMessage += `後五碼：${paymentInfo.reference}\n`
@@ -567,6 +579,9 @@ async function handlePaymentReport(userId, message, replyToken) {
     confirmMessage = `✅ 付款資訊已收到！\n\n`
     if (paymentInfo.name) {
       confirmMessage += `姓名：${paymentInfo.name}\n`
+    }
+    if (paymentInfo.bank) {
+      confirmMessage += `銀行：${paymentInfo.bank}\n`
     }
     if (paymentInfo.reference) {
       confirmMessage += `後五碼：${paymentInfo.reference}\n`
@@ -598,19 +613,69 @@ async function handlePaymentReport(userId, message, replyToken) {
   await safeReplyMessage(lineClientInstance, replyToken, confirmMessage)
 }
 
+// 常見銀行列表（用於匹配）
+const COMMON_BANKS = {
+  '台灣銀行': ['台灣銀行', '台銀', '004'],
+  '土地銀行': ['土地銀行', '土銀', '005'],
+  '合作金庫': ['合作金庫', '合庫', '006'],
+  '第一銀行': ['第一銀行', '一銀', '007'],
+  '華南銀行': ['華南銀行', '華銀', '008'],
+  '彰化銀行': ['彰化銀行', '彰銀', '009'],
+  '上海銀行': ['上海銀行', '上銀', '011'],
+  '富邦銀行': ['富邦銀行', '富邦', '012'],
+  '國泰世華': ['國泰世華', '國泰', '013'],
+  '中國信託': ['中國信託', '中信', '822'],
+  '台新銀行': ['台新銀行', '台新', '812'],
+  '玉山銀行': ['玉山銀行', '玉山', '808'],
+  '元大銀行': ['元大銀行', '元大', '806'],
+  '永豐銀行': ['永豐銀行', '永豐', '807'],
+  '兆豐銀行': ['兆豐銀行', '兆豐', '017'],
+  '郵局': ['郵局', '中華郵政', '700'],
+  '其他': ['其他']
+}
+
+// 匹配銀行名稱的函數
+function matchBankName(text) {
+  if (!text) return null
+  
+  const lowerText = text.toLowerCase()
+  for (const [bankName, keywords] of Object.entries(COMMON_BANKS)) {
+    for (const keyword of keywords) {
+      if (lowerText.includes(keyword.toLowerCase()) || text.includes(keyword)) {
+        return bankName
+      }
+    }
+  }
+  return null
+}
+
 // 解析付款回報訊息的函數
 function parsePaymentMessage(message) {
   const result = {
     reference: null,
     amount: null,
+    bank: null,
     method: '銀行轉帳',
     notes: message
   }
   
   // 提取姓名（支援中文和英文冒號）
-  const nameMatch = message.match(/姓名[：:]\s*([^\n\r後五碼金額備註]+)/)
+  const nameMatch = message.match(/姓名[：:]\s*([^\n\r後五碼金額備註銀行]+)/)
   if (nameMatch) {
     result.name = nameMatch[1].trim()
+  }
+  
+  // 提取銀行（支援中文和英文冒號）
+  const bankMatch = message.match(/銀行[：:]\s*([^\n\r後五碼金額備註]+)/)
+  if (bankMatch) {
+    const bankText = bankMatch[1].trim()
+    result.bank = matchBankName(bankText) || bankText
+  } else {
+    // 備用：在整個訊息中搜尋銀行關鍵字
+    const matchedBank = matchBankName(message)
+    if (matchedBank) {
+      result.bank = matchedBank
+    }
   }
   
   // 提取後五碼
@@ -834,19 +899,27 @@ async function handleReEnrollment(userId, message, replyToken) {
 
 📝 重要提醒：
 • 請於 3 天內完成付款
-• 付款完成後，請回覆「姓名」與「帳號後五碼」
+• 付款完成後，請回覆「姓名」、「銀行」與「帳號後五碼」
 • 我們會在確認付款後 24 小時內與您聯繫
 
 💳 付款回報格式
 請按照以下格式提供您的付款資訊：
 
 姓名: [您的姓名]
+銀行: [匯款銀行名稱]
 後五碼: [帳號後五碼]
 金額: [匯款金額]
 備註: [其他說明, 選填]
 
+常見銀行：
+• 台灣銀行、土地銀行、合作金庫、第一銀行、華南銀行
+• 彰化銀行、上海銀行、富邦銀行、國泰世華、中國信託
+• 台新銀行、玉山銀行、元大銀行、永豐銀行、兆豐銀行
+• 郵局、其他
+
 例如:
 姓名: 張小明
+銀行: 台新銀行
 後五碼: 12345
 金額: 3000
 備註: 已匯款完成
@@ -1552,9 +1625,14 @@ async function handlePaymentReportStart(userId, replyToken) {
     }
 
     const coursePrice = getCoursePrice(user.course)
+    const bankList = `• 台灣銀行、土地銀行、合作金庫、第一銀行、華南銀行
+• 彰化銀行、上海銀行、富邦銀行、國泰世華、中國信託
+• 台新銀行、玉山銀行、元大銀行、永豐銀行、兆豐銀行
+• 郵局、其他`
+    
     const message = {
       type: 'text',
-      text: `💳 付款回報\n\n請提供您的付款資訊：\n\n姓名: ${user.name}\n後五碼: [請輸入帳號後五碼]\n金額: [請輸入匯款金額]\n\n例如:\n後五碼: 12345\n金額: ${coursePrice.replace(/[^\d]/g, '')}`
+      text: `💳 付款回報\n\n請提供您的付款資訊：\n\n姓名: ${user.name}\n銀行: [請輸入匯款銀行名稱]\n後五碼: [請輸入帳號後五碼]\n金額: [請輸入匯款金額]\n備註: [選填]\n\n常見銀行：\n${bankList}\n\n例如:\n銀行: 台新銀行\n後五碼: 12345\n金額: ${coursePrice.replace(/[^\d]/g, '')}`
     }
 
     await safeReplyMessage(lineClientInstance, replyToken, message, userId)
@@ -1609,17 +1687,27 @@ async function handlePaymentReportDetail(userId, replyToken) {
       return
     }
 
+    const bankList = `• 台灣銀行、土地銀行、合作金庫、第一銀行、華南銀行
+• 彰化銀行、上海銀行、富邦銀行、國泰世華、中國信託
+• 台新銀行、玉山銀行、元大銀行、永豐銀行、兆豐銀行
+• 郵局、其他`
+
     const guideMessage = `💳 詳細付款回報
 
 請按照以下格式提供您的付款資訊：
 
 姓名: ${user.name}
+銀行: [匯款銀行名稱]
 後五碼: [帳號後五碼]
 金額: [匯款金額]
 備註: [其他說明, 選填]
 
+常見銀行：
+${bankList}
+
 例如:
 姓名: ${user.name}
+銀行: 台新銀行
 後五碼: 12345
 金額: 3000
 備註: 已匯款完成

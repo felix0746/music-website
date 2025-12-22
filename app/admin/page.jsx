@@ -2232,8 +2232,11 @@ export default function AdminPage() {
                         {/* 付款參考號碼 */}
                         {student.paymentReference && (
                           <div className="flex justify-between">
-                            <span className="text-gray-600">後五碼:</span>
-                            <span className="text-gray-900 font-mono">{student.paymentReference}</span>
+                            <span className="text-gray-600">付款資訊:</span>
+                            <span className="text-gray-900">
+                              {student.paymentBank ? `${student.paymentBank} ` : ''}
+                              <span className="font-mono">{student.paymentReference}</span>
+                            </span>
                           </div>
                         )}
 
@@ -2558,7 +2561,10 @@ export default function AdminPage() {
                           <span className="text-blue-600 font-medium">{getCourseName(student.course)}</span>
                           <span className="text-purple-600 font-medium">{getCoursePrice(student.course)}</span>
                         {student.paymentReference && (
-                            <span className="text-gray-600">後五碼: {student.paymentReference}</span>
+                            <span className="text-gray-600">
+                              付款: {student.paymentBank ? `${student.paymentBank} ` : ''}
+                              <span className="font-mono">{student.paymentReference}</span>
+                            </span>
                           )}
                         </div>
                         
@@ -2608,7 +2614,10 @@ export default function AdminPage() {
                           <span className="text-blue-600 font-medium">{getCourseName(student.course)}</span>
                           <span className="text-purple-600 font-medium">{getCoursePrice(student.course)}</span>
                           {student.paymentReference && (
-                            <span className="text-gray-600">後五碼: {student.paymentReference}</span>
+                            <span className="text-gray-600">
+                              付款: {student.paymentBank ? `${student.paymentBank} ` : ''}
+                              <span className="font-mono">{student.paymentReference}</span>
+                            </span>
                           )}
                         </div>
                         
@@ -2667,7 +2676,10 @@ export default function AdminPage() {
                           <span className="text-blue-600 font-medium">{getCourseName(student.course)}</span>
                           <span className="text-purple-600 font-medium">{getCoursePrice(student.course)}</span>
                           {student.paymentReference && (
-                            <span className="text-gray-600">後五碼: {student.paymentReference}</span>
+                            <span className="text-gray-600">
+                              付款: {student.paymentBank ? `${student.paymentBank} ` : ''}
+                              <span className="font-mono">{student.paymentReference}</span>
+                            </span>
                           )}
                         </div>
                         

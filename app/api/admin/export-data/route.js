@@ -118,7 +118,7 @@ export async function POST(request) {
 function generateCSV(students, fields) {
   const defaultFields = [
     'id', 'name', 'email', 'course', 'paymentStatus', 'paymentAmount',
-    'enrollmentStatus', 'createdAt', 'paymentDate', 'lineUserId'
+    'paymentBank', 'paymentReference', 'enrollmentStatus', 'createdAt', 'paymentDate', 'lineUserId'
   ]
   
   const selectedFields = fields || defaultFields
@@ -171,6 +171,8 @@ function getFieldDisplayName(field) {
     'course': '課程',
     'paymentStatus': '付款狀態',
     'paymentAmount': '付款金額',
+    'paymentBank': '匯出銀行',
+    'paymentReference': '後五碼',
     'enrollmentStatus': '報名狀態',
     'createdAt': '報名時間',
     'paymentDate': '付款時間',
