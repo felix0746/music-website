@@ -256,7 +256,8 @@ export default function RichMenuPage() {
   }, [])
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-white">
+      <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Rich Menu 管理</h1>
         <p className="text-gray-600">管理 LINE Bot 的圖文選單（Rich Menu）</p>
@@ -481,6 +482,7 @@ export default function RichMenuPage() {
           <li>上傳成功後，點擊「設為預設」按鈕</li>
           <li>完全關閉並重新打開 LINE 應用程式查看效果</li>
         </ol>
+      </div>
       </div>
     </div>
   )
