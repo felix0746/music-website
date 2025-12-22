@@ -146,8 +146,22 @@ async function handleTextMessage(event) {
         // 用戶想要取消課程
         await handleCancellation(userId, userMessage, replyToken)
       } else if ((userMessage.includes('姓名：') || userMessage.includes('姓名:')) && (userMessage.includes('課程：') || userMessage.includes('課程:'))) {
-        // 用戶提供了報名資訊，處理重新報名
+        // 用戶提供了完整報名資訊（姓名和課程），處理重新報名
         await handleReEnrollment(userId, userMessage, replyToken)
+      } else if ((userMessage.includes('姓名：') || userMessage.includes('姓名:')) && !userMessage.includes('課程：') && !userMessage.includes('課程:')) {
+        // 用戶只提供了姓名（沒有課程），檢查是否為已取消用戶想要重新報名
+        // 這通常是因為他們從「立即報名」按鈕來，課程資訊應該從用戶記錄中獲取
+        const nameMatch = userMessage.match(/姓名[：:]\s*(.+)/)
+        if (nameMatch && existingUser && existingUser.enrollmentStatus === 'CANCELLED') {
+          // 已取消的用戶只輸入姓名，使用之前的課程進行重新報名
+          const name = nameMatch[1].trim()
+          const courseName = getCourseName(existingUser.course)
+          // 構建完整的報名訊息格式
+          const enrollmentMessage = `姓名：${name}\n課程：${courseName}`
+          await handleReEnrollment(userId, enrollmentMessage, replyToken)
+          return
+        }
+        // 如果不符合上述條件，繼續往下處理（可能是新用戶或格式問題）
       } else if (userMessage.includes('付款') || userMessage.includes('匯款') || userMessage.includes('後五碼')) {
         // 統一使用 handlePaymentReport，它會自動判斷是顯示引導還是處理付款資訊
         await handlePaymentReport(userId, userMessage, replyToken)
