@@ -149,17 +149,36 @@ async function handleTextMessage(event) {
         // 用戶提供了完整報名資訊（姓名和課程），處理重新報名
         await handleReEnrollment(userId, userMessage, replyToken)
       } else if ((userMessage.includes('姓名：') || userMessage.includes('姓名:')) && !userMessage.includes('課程：') && !userMessage.includes('課程:')) {
-        // 用戶只提供了姓名（沒有課程），檢查是否為已取消用戶想要重新報名
-        // 這通常是因為他們從「立即報名」按鈕來，課程資訊應該從用戶記錄中獲取
+        // 用戶只提供了姓名（沒有課程），檢查是否有保存的課程選擇
+        // 這通常是因為他們從「立即報名」按鈕來，課程資訊應該從 paymentNotes 中獲取
         const nameMatch = userMessage.match(/姓名[：:]\s*(.+)/)
-        if (nameMatch && existingUser && existingUser.enrollmentStatus === 'CANCELLED') {
-          // 已取消的用戶只輸入姓名，使用之前的課程進行重新報名
+        if (nameMatch && existingUser) {
           const name = nameMatch[1].trim()
-          const courseName = getCourseName(existingUser.course)
-          // 構建完整的報名訊息格式
-          const enrollmentMessage = `姓名：${name}\n課程：${courseName}`
-          await handleReEnrollment(userId, enrollmentMessage, replyToken)
-          return
+          
+          // 檢查 paymentNotes 中是否有保存的課程選擇（格式：[PENDING_COURSE]課程代碼）
+          let pendingCourseCode = null
+          if (existingUser.paymentNotes && existingUser.paymentNotes.includes('[PENDING_COURSE]')) {
+            // 使用更精確的正則表達式，只提取課程代碼（字母、數字、連字號）
+            const match = existingUser.paymentNotes.match(/\[PENDING_COURSE\]([a-z0-9-]+)/i)
+            if (match && match[1]) {
+              pendingCourseCode = match[1].trim()
+            }
+          }
+          
+          // 如果有保存的課程，使用該課程進行報名
+          if (pendingCourseCode) {
+            const courseName = getCourseName(pendingCourseCode)
+            // 構建完整的報名訊息格式
+            const enrollmentMessage = `姓名：${name}\n課程：${courseName}`
+            await handleReEnrollment(userId, enrollmentMessage, replyToken)
+            return
+          } else if (existingUser.enrollmentStatus === 'CANCELLED') {
+            // 如果沒有保存的課程，但用戶已取消，使用之前的課程
+            const courseName = getCourseName(existingUser.course)
+            const enrollmentMessage = `姓名：${name}\n課程：${courseName}`
+            await handleReEnrollment(userId, enrollmentMessage, replyToken)
+            return
+          }
         }
         // 如果不符合上述條件，繼續往下處理（可能是新用戶或格式問題）
       } else if (userMessage.includes('付款') || userMessage.includes('匯款') || userMessage.includes('後五碼')) {
@@ -2069,8 +2088,17 @@ async function handleEnrollFromTemplate(userId, replyToken, courseCode) {
     const courseName = getCourseName(courseCode)
     const coursePrice = getCoursePrice(courseCode)
     
-    // 如果用戶已取消課程，提供重新報名的簡潔訊息
+    // 如果用戶已取消課程，保存當前選擇的課程到 paymentNotes 作為臨時存儲
+    // 這樣當用戶只輸入姓名時，我們可以知道他們想報名哪個課程
     if (existingUser && existingUser.enrollmentStatus === 'CANCELLED') {
+      // 保存當前選擇的課程（使用特殊格式標記）
+      await prismaInstance.user.update({
+        where: { lineUserId: userId },
+        data: {
+          paymentNotes: `[PENDING_COURSE]${courseCode}`
+        }
+      })
+
       const enrollmentMessage = `🎵 歡迎重新報名「${courseName}」！
 
 💰 課程價格：${coursePrice}
@@ -2113,6 +2141,17 @@ async function handleEnrollFromTemplate(userId, replyToken, courseCode) {
       await safeReplyMessage(lineClientInstance, replyToken, quickReply, userId)
       return
     }
+
+    // 新用戶或已完成退費的用戶，也保存選擇的課程（如果用戶存在）
+    if (existingUser) {
+      await prismaInstance.user.update({
+        where: { lineUserId: userId },
+        data: {
+          paymentNotes: `[PENDING_COURSE]${courseCode}`
+        }
+      })
+    }
+    // 注意：新用戶不需要在這裡創建記錄，他們會在輸入姓名時創建
     
     // 新用戶或已完成退費的用戶，提供完整報名訊息
     const enrollmentMessage = `🎵 感謝您選擇「${courseName}」！
