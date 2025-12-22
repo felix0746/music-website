@@ -1436,6 +1436,7 @@ async function handlePostback(event) {
       
       case 'payment_info':
         // 付款資訊
+        console.log('收到付款資訊請求:', { userId, action })
         await handlePaymentInfo(userId, replyToken)
         break
       
@@ -1753,12 +1754,15 @@ async function handlePaymentInfo(userId, replyToken) {
   const lineClientInstance = getLineClient()
 
   try {
+    console.log('處理付款資訊請求:', { userId })
+    
     const user = await prismaInstance.user.findUnique({
       where: { lineUserId: userId }
     })
 
-    if (!user) {
-      // 未報名用戶，顯示一般付款資訊
+    if (!user || !user.course) {
+      // 未報名用戶或沒有課程資訊，顯示一般付款資訊
+      console.log('用戶未報名或無課程資訊，顯示一般付款資訊')
       const generalPaymentInfo = `💳 付款資訊
 
 🏦 銀行：台灣銀行 (004)
@@ -1784,12 +1788,19 @@ async function handlePaymentInfo(userId, replyToken) {
     }
 
     // 已報名用戶，顯示個人付款資訊 Template
+    console.log('為已報名用戶顯示付款資訊:', { userId, course: user.course })
     const paymentTemplate = createPaymentInfoTemplate(user)
     await safeReplyMessage(lineClientInstance, replyToken, paymentTemplate, userId)
+    console.log('付款資訊已成功發送')
 
   } catch (error) {
     console.error('顯示付款資訊時發生錯誤:', error)
-    await safeReplyMessage(lineClientInstance, replyToken, '抱歉，顯示付款資訊時發生錯誤，請稍後再試。')
+    console.error('錯誤詳情:', error.stack)
+    try {
+      await safeReplyMessage(lineClientInstance, replyToken, '抱歉，顯示付款資訊時發生錯誤，請稍後再試。')
+    } catch (replyError) {
+      console.error('回覆錯誤訊息時發生錯誤:', replyError)
+    }
   }
 }
 

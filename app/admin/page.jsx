@@ -1945,12 +1945,13 @@ export default function AdminPage() {
               value={courseFilter}
               onChange={(e) => setCourseFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white text-gray-900"
+              style={{ color: '#111827' }}
             >
-              <option value="ALL">全部課程</option>
-              <option value="歌唱課">歌唱課</option>
-              <option value="吉他課">吉他課</option>
-              <option value="創作課">創作課</option>
-              <option value="春曲創作團班">春曲創作團班</option>
+              <option value="ALL" style={{ color: '#111827' }}>全部課程</option>
+              <option value="歌唱課" style={{ color: '#111827' }}>歌唱課</option>
+              <option value="吉他課" style={{ color: '#111827' }}>吉他課</option>
+              <option value="創作課" style={{ color: '#111827' }}>創作課</option>
+              <option value="春曲創作團班" style={{ color: '#111827' }}>春曲創作團班</option>
             </select>
           </div>
         </div>
@@ -1985,12 +1986,13 @@ export default function AdminPage() {
             value={courseFilter}
             onChange={(e) => setCourseFilter(e.target.value)}
             className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 bg-white"
+            style={{ color: '#111827' }}
           >
-            <option value="ALL">全部課程</option>
-            <option value="歌唱課">歌唱課</option>
-            <option value="吉他課">吉他課</option>
-            <option value="創作課">創作課</option>
-            <option value="春曲創作團班">春曲創作團班</option>
+            <option value="ALL" style={{ color: '#111827' }}>全部課程</option>
+            <option value="歌唱課" style={{ color: '#111827' }}>歌唱課</option>
+            <option value="吉他課" style={{ color: '#111827' }}>吉他課</option>
+            <option value="創作課" style={{ color: '#111827' }}>創作課</option>
+            <option value="春曲創作團班" style={{ color: '#111827' }}>春曲創作團班</option>
           </select>
         </div>
         
@@ -3077,7 +3079,7 @@ export default function AdminPage() {
                 type="date"
                 value={courseStartDateValue}
                 onChange={(e) => setCourseStartDateValue(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
               />
               <p className="text-xs text-gray-500 mt-2">
                 留空則清除開課日期（點擊下方「清除日期」按鈕）
