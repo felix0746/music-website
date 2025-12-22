@@ -2023,19 +2023,84 @@ async function handleEnrollFromTemplate(userId, replyToken, courseCode) {
       where: { lineUserId: userId }
     })
 
+    // 如果用戶已存在且是有效報名且已付款，不允許重複報名
     if (existingUser && existingUser.enrollmentStatus === 'ACTIVE' && existingUser.paymentStatus === 'PAID') {
       await safeReplyMessage(lineClientInstance, replyToken, `✅ 您目前已經完成報名並付款！
 
 如需報名新一季課程，請先取消現有報名後再重新報名。
 
-如有任何疑問，請點擊「聯絡老師」聯繫我們。`)
+📱 請使用圖文選單：
+• 點擊「取消/退費」取消現有報名
+• 點擊「聯絡老師」如有任何疑問`)
+      return
+    }
+
+    // 如果用戶已存在但未完成付款，提醒完成付款
+    if (existingUser && existingUser.enrollmentStatus === 'ACTIVE' && 
+        (existingUser.paymentStatus === 'PARTIAL' || existingUser.paymentStatus === 'PENDING' || existingUser.paymentStatus === 'UNPAID')) {
+      await safeReplyMessage(lineClientInstance, replyToken, `您目前已經有報名記錄，但付款尚未完成！
+
+您的當前報名資訊：
+• 姓名：${existingUser.name}
+• 課程：${getCourseName(existingUser.course)}
+• 付款狀態：${existingUser.paymentStatus === 'PARTIAL' ? '部分付款' : 
+                      existingUser.paymentStatus === 'PENDING' ? '待補付' : '尚未付款'}
+
+📱 請使用圖文選單：
+• 點擊「付款回報」完成付款
+• 點擊「取消/退費」取消現有報名`)
       return
     }
 
     const courseName = getCourseName(courseCode)
     const coursePrice = getCoursePrice(courseCode)
     
-    // 簡潔的報名訊息（不重複課程詳情，因為用戶已經看過了）
+    // 如果用戶已取消課程，提供重新報名的簡潔訊息
+    if (existingUser && existingUser.enrollmentStatus === 'CANCELLED') {
+      const enrollmentMessage = `🎵 歡迎重新報名「${courseName}」！
+
+💰 課程價格：${coursePrice}
+
+📝 請提供您的姓名，我們會立即為您處理報名並發送付款資訊。
+
+💡 請按照以下格式回覆：
+姓名：[您的姓名]
+
+📌 範例：
+姓名：${existingUser.name || '張小明'}
+
+我們收到您的報名資訊後，會立即為您建立報名記錄並提供付款方式！`
+      
+      const quickReply = {
+        type: 'text',
+        text: enrollmentMessage,
+        quickReply: {
+          items: [
+            {
+              type: 'action',
+              action: {
+                type: 'message',
+                label: '📝 查看報名格式',
+                text: '姓名：'
+              }
+            },
+            {
+              type: 'action',
+              action: {
+                type: 'message',
+                label: '❓ 我有問題',
+                text: '我有報名相關問題'
+              }
+            }
+          ]
+        }
+      }
+
+      await safeReplyMessage(lineClientInstance, replyToken, quickReply, userId)
+      return
+    }
+    
+    // 新用戶或已完成退費的用戶，提供完整報名訊息
     const enrollmentMessage = `🎵 感謝您選擇「${courseName}」！
 
 💰 課程價格：${coursePrice}
