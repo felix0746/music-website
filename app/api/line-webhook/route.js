@@ -9,6 +9,7 @@ import {
   getCoursePriceNumber,
   createCoursesCarousel,
   createPaymentInfoTemplate,
+  createPaidPaymentInfoTemplate,
   createPaymentReportTemplate,
   createCancelCourseTemplate,
   createRefundStatusTemplate,
@@ -1863,9 +1864,20 @@ async function handlePaymentInfo(userId, replyToken) {
       return
     }
 
-    // 已報名用戶，顯示個人付款資訊 Template
-    console.log('為已報名用戶顯示付款資訊:', { userId, course: user.course, name: user.name })
-    const paymentTemplate = createPaymentInfoTemplate(user)
+    // 已報名用戶，根據付款狀態顯示不同的付款資訊
+    console.log('為已報名用戶顯示付款資訊:', { userId, course: user.course, name: user.name, paymentStatus: user.paymentStatus })
+    
+    let paymentTemplate
+    if (user.paymentStatus === 'PAID' || user.paymentStatus === 'PARTIAL') {
+      // 已付款或部分付款，顯示已付款資訊模板（包含付款狀態和日期）
+      paymentTemplate = createPaidPaymentInfoTemplate(user)
+      console.log('使用已付款資訊模板')
+    } else {
+      // 未付款，顯示一般付款資訊模板（引導付款）
+      paymentTemplate = createPaymentInfoTemplate(user)
+      console.log('使用一般付款資訊模板')
+    }
+    
     console.log('付款資訊模板:', JSON.stringify(paymentTemplate, null, 2))
     await safeReplyMessage(lineClientInstance, replyToken, paymentTemplate, userId)
     console.log('付款資訊 Template 已成功發送')
