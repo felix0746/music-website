@@ -60,7 +60,7 @@ export default function EnrollmentSection() {
             <h3 className="font-playfair italic text-retro-amber tracking-[0.4em] text-sm uppercase">入學儀式</h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mt-12">
               {[
-                { step: '01', title: '加入 LINE', desc: '開啟屬於您的私密頻道' },
+                { step: '01', title: '加入 LINE', desc: '開啟屬於您的學習頻道' },
                 { step: '02', title: '深度諮詢', desc: '確認您的創作與學習方向' },
                 { step: '03', title: '契合方案', desc: '選擇最適合您的沙龍計畫' },
                 { step: '04', title: '正式啟幕', desc: '開始您的靈魂探索之旅' }
