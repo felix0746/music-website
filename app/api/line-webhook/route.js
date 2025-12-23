@@ -50,23 +50,39 @@ async function safeReplyMessage(lineClient, replyToken, message, userId = null) 
   // LINE SDK 要求 messages 必須是數組
   const messages = Array.isArray(messageObj) ? messageObj : [messageObj]
   
+  console.log('safeReplyMessage 被調用:', { 
+    hasReplyToken: !!replyToken, 
+    hasUserId: !!userId, 
+    messageType: messageObj.type || 'unknown',
+    isArray: Array.isArray(messageObj)
+  })
+  
   // 如果有 replyToken，優先使用 replyMessage
   if (replyToken) {
     try {
-      await lineClient.replyMessage(replyToken, messages)
+      console.log('嘗試使用 replyMessage 發送訊息...')
+      const result = await lineClient.replyMessage(replyToken, messages)
+      console.log('replyMessage 成功:', result)
       return
     } catch (error) {
       console.error('回覆訊息失敗:', error.message)
       console.error('回覆訊息錯誤詳情:', error.stack)
+      console.error('錯誤的完整訊息:', JSON.stringify(error, null, 2))
       // 如果回覆失敗，且有用戶 ID，使用 pushMessage 作為備選
       if (userId) {
         try {
+          console.log('嘗試使用 pushMessage 作為備選...')
           await lineClient.pushMessage(userId, messages)
+          console.log('pushMessage 成功')
           return
         } catch (pushError) {
           console.error('Push 訊息也失敗:', pushError.message)
           console.error('Push 訊息錯誤詳情:', pushError.stack)
+          console.error('Push 錯誤的完整訊息:', JSON.stringify(pushError, null, 2))
+          throw pushError // 重新拋出錯誤，讓調用者知道
         }
+      } else {
+        throw error // 如果沒有 userId，拋出原始錯誤
       }
     }
   }
@@ -74,11 +90,17 @@ async function safeReplyMessage(lineClient, replyToken, message, userId = null) 
   // 如果沒有 replyToken 但有用戶 ID，使用 pushMessage
   if (userId) {
     try {
+      console.log('沒有 replyToken，使用 pushMessage 發送訊息...')
       await lineClient.pushMessage(userId, messages)
+      console.log('pushMessage 成功')
     } catch (pushError) {
       console.error('Push 訊息失敗:', pushError.message)
       console.error('Push 訊息錯誤詳情:', pushError.stack)
+      console.error('Push 錯誤的完整訊息:', JSON.stringify(pushError, null, 2))
+      throw pushError
     }
+  } else {
+    console.error('警告：沒有 replyToken 也沒有 userId，無法發送訊息')
   }
 }
 
