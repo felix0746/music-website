@@ -1886,23 +1886,66 @@ async function handlePaymentInfo(userId, replyToken) {
       return
     }
 
-    // 已報名用戶，根據付款狀態顯示不同的付款資訊
+    // 已報名用戶，根據付款狀態顯示不同的付款資訊（改用文字訊息而非 Template Message）
     console.log('為已報名用戶顯示付款資訊:', { userId, course: user.course, name: user.name, paymentStatus: user.paymentStatus })
     
-    let paymentTemplate
+    let paymentMessage
     if (user.paymentStatus === 'PAID' || user.paymentStatus === 'PARTIAL') {
-      // 已付款或部分付款，顯示已付款資訊模板（包含付款狀態和日期）
-      paymentTemplate = createPaidPaymentInfoTemplate(user)
-      console.log('使用已付款資訊模板')
+      // 已付款或部分付款，顯示已付款資訊（包含付款狀態和日期）
+      const courseName = getCourseName(user.course)
+      const coursePrice = getCoursePrice(user.course)
+      const paymentDate = user.paymentDate ? new Date(user.paymentDate).toLocaleDateString('zh-TW') : '未記錄'
+      
+      let statusText = '✅ 您已完成付款'
+      if (user.paymentStatus === 'PARTIAL') {
+        const shortAmount = calculateShortAmount(user)
+        statusText = `⚠️ 部分付款（尚需補付 ${shortAmount} 元）`
+      }
+      
+      paymentMessage = `✅ 付款確認完成
+
+您已完成付款，以下是您的付款資訊：
+
+${user.paymentBank ? `🏦 銀行：${user.paymentBank}\n` : ''}${user.paymentReference ? `💳 後五碼：${user.paymentReference}\n` : ''}${user.paymentAmount ? `💰 金額：${user.paymentAmount}\n` : ''}${user.paymentDate ? `📅 付款日期：${paymentDate}\n` : ''}
+📚 課程：${courseName}
+💰 應付金額：${coursePrice}
+
+${statusText}
+
+收款帳號資訊（供對帳使用）：
+🏦 銀行：台灣銀行 (004)
+💳 帳號：1234567890123456
+👤 戶名：蘇文紹
+
+您的付款已確認，我們會盡快與您聯繫安排課程！
+
+如有任何問題，請點擊「聯絡老師」聯繫我們。`
+      console.log('使用已付款資訊文字訊息')
     } else {
-      // 未付款，顯示一般付款資訊模板（引導付款）
-      paymentTemplate = createPaymentInfoTemplate(user)
-      console.log('使用一般付款資訊模板')
+      // 未付款，顯示一般付款資訊（引導付款）
+      const courseName = getCourseName(user.course)
+      const coursePrice = getCoursePrice(user.course)
+      
+      paymentMessage = `💳 付款資訊
+
+📚 課程：${courseName}
+💰 應付金額：${coursePrice}
+
+🏦 銀行：台灣銀行 (004)
+💳 帳號：1234567890123456
+👤 戶名：蘇文紹
+
+📝 重要提醒：
+• 請於報名後 3 天內完成付款
+• 付款完成後，請點擊「付款回報」回報付款資訊
+• 我們會在確認付款後 24 小時內與您聯繫
+
+如需回報付款，請點擊「付款回報」按鈕。`
+      console.log('使用一般付款資訊文字訊息')
     }
     
-    console.log('付款資訊模板:', JSON.stringify(paymentTemplate, null, 2))
-    await safeReplyMessage(lineClientInstance, replyToken, paymentTemplate, userId)
-    console.log('付款資訊 Template 已成功發送')
+    await safeReplyMessage(lineClientInstance, replyToken, paymentMessage)
+    console.log('付款資訊文字訊息已成功發送')
 
   } catch (error) {
     console.error('顯示付款資訊時發生錯誤:', error)
