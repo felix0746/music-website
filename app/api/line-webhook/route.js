@@ -46,20 +46,25 @@ async function safeReplyMessage(lineClient, replyToken, message, userId = null) 
     ? { type: 'text', text: message }
     : message
   
+  // LINE SDK 要求 messages 必須是數組
+  const messages = Array.isArray(messageObj) ? messageObj : [messageObj]
+  
   // 如果有 replyToken，優先使用 replyMessage
   if (replyToken) {
     try {
-      await lineClient.replyMessage(replyToken, messageObj)
+      await lineClient.replyMessage(replyToken, messages)
       return
     } catch (error) {
       console.error('回覆訊息失敗:', error.message)
+      console.error('回覆訊息錯誤詳情:', error.stack)
       // 如果回覆失敗，且有用戶 ID，使用 pushMessage 作為備選
       if (userId) {
         try {
-          await lineClient.pushMessage(userId, messageObj)
+          await lineClient.pushMessage(userId, messages)
           return
         } catch (pushError) {
           console.error('Push 訊息也失敗:', pushError.message)
+          console.error('Push 訊息錯誤詳情:', pushError.stack)
         }
       }
     }
@@ -68,9 +73,10 @@ async function safeReplyMessage(lineClient, replyToken, message, userId = null) 
   // 如果沒有 replyToken 但有用戶 ID，使用 pushMessage
   if (userId) {
     try {
-      await lineClient.pushMessage(userId, messageObj)
+      await lineClient.pushMessage(userId, messages)
     } catch (pushError) {
       console.error('Push 訊息失敗:', pushError.message)
+      console.error('Push 訊息錯誤詳情:', pushError.stack)
     }
   }
 }
@@ -635,15 +641,82 @@ async function handlePaymentReport(userId, message, replyToken) {
     (message.includes('金額') || /\d{3,}/.test(message))
   )
 
-  // 如果只是關鍵字（如「付款」、「匯款」）而沒有實際付款資訊，顯示引導
+  // 如果只是關鍵字（如「付款」、「匯款」）而沒有實際付款資訊，先檢查付款狀態
   if (!hasPaymentInfo && (message === '付款' || message === '匯款' || message.includes('付款回報') || message.trim().length < 10)) {
-    // 顯示付款回報引導（統一使用詳細格式）
+    // 檢查付款狀態，如果已經付款完成，顯示確認訊息而非引導
+    if (user.paymentStatus === 'PAID') {
+      const paidMessage = `✅ 付款確認完成
+
+您已完成付款，以下是您的付款資訊：
+
+${user.paymentBank ? `🏦 銀行：${user.paymentBank}\n` : ''}${user.paymentReference ? `💳 後五碼：${user.paymentReference}\n` : ''}${user.paymentAmount ? `💰 金額：${user.paymentAmount}\n` : ''}${user.paymentDate ? `📅 付款日期：${new Date(user.paymentDate).toLocaleDateString('zh-TW')}\n` : ''}
+📚 課程：${getCourseName(user.course)}
+💰 應付金額：${getCoursePrice(user.course)}
+
+✅ 您的付款已確認，我們會盡快與您聯繫安排課程！
+
+如有任何問題，請點擊「聯絡老師」聯繫我們。`
+      await safeReplyMessage(lineClientInstance, replyToken, paidMessage)
+      return
+    } else if (user.paymentStatus === 'PARTIAL') {
+      // 部分付款的情況
+      const shortAmount = calculateShortAmount(user)
+      const partialMessage = `⚠️ 部分付款狀態
+
+您目前的付款狀況：
+
+${user.paymentBank ? `🏦 銀行：${user.paymentBank}\n` : ''}${user.paymentReference ? `💳 後五碼：${user.paymentReference}\n` : ''}${user.paymentAmount ? `💰 已付款金額：${user.paymentAmount}\n` : ''}
+📚 課程：${getCourseName(user.course)}
+💰 應付金額：${getCoursePrice(user.course)}
+⚠️ 尚需補付：${shortAmount} 元
+
+請完成補付以確認報名。
+
+如需補付，請點擊「付款回報」並提供補付資訊。`
+      await safeReplyMessage(lineClientInstance, replyToken, partialMessage)
+      return
+    }
+    // 未付款或狀態不明，顯示付款回報引導
     await showPaymentReportGuide(userId, replyToken, user)
     return
   }
   
-  // 如果解析後沒有關鍵資訊（後五碼和金額），也顯示引導
+  // 如果解析後沒有關鍵資訊（後五碼和金額），也先檢查付款狀態
   if (!paymentInfo.reference && !paymentInfo.amount) {
+    // 檢查付款狀態
+    if (user.paymentStatus === 'PAID') {
+      const paidMessage = `✅ 付款確認完成
+
+您已完成付款，以下是您的付款資訊：
+
+${user.paymentBank ? `🏦 銀行：${user.paymentBank}\n` : ''}${user.paymentReference ? `💳 後五碼：${user.paymentReference}\n` : ''}${user.paymentAmount ? `💰 金額：${user.paymentAmount}\n` : ''}${user.paymentDate ? `📅 付款日期：${new Date(user.paymentDate).toLocaleDateString('zh-TW')}\n` : ''}
+📚 課程：${getCourseName(user.course)}
+💰 應付金額：${getCoursePrice(user.course)}
+
+✅ 您的付款已確認，我們會盡快與您聯繫安排課程！
+
+如有任何問題，請點擊「聯絡老師」聯繫我們。`
+      await safeReplyMessage(lineClientInstance, replyToken, paidMessage)
+      return
+    } else if (user.paymentStatus === 'PARTIAL') {
+      // 部分付款的情況
+      const shortAmount = calculateShortAmount(user)
+      const partialMessage = `⚠️ 部分付款狀態
+
+您目前的付款狀況：
+
+${user.paymentBank ? `🏦 銀行：${user.paymentBank}\n` : ''}${user.paymentReference ? `💳 後五碼：${user.paymentReference}\n` : ''}${user.paymentAmount ? `💰 已付款金額：${user.paymentAmount}\n` : ''}
+📚 課程：${getCourseName(user.course)}
+💰 應付金額：${getCoursePrice(user.course)}
+⚠️ 尚需補付：${shortAmount} 元
+
+請完成補付以確認報名。
+
+如需補付，請點擊「付款回報」並提供補付資訊。`
+      await safeReplyMessage(lineClientInstance, replyToken, partialMessage)
+      return
+    }
+    // 未付款或狀態不明，顯示付款回報引導
     await showPaymentReportGuide(userId, replyToken, user)
     return
   }
@@ -1754,11 +1827,13 @@ async function handlePaymentInfo(userId, replyToken) {
   const lineClientInstance = getLineClient()
 
   try {
-    console.log('處理付款資訊請求:', { userId })
+    console.log('處理付款資訊請求:', { userId, replyToken })
     
     const user = await prismaInstance.user.findUnique({
       where: { lineUserId: userId }
     })
+
+    console.log('用戶查詢結果:', { user: user ? { id: user.id, course: user.course, name: user.name } : null })
 
     if (!user || !user.course) {
       // 未報名用戶或沒有課程資訊，顯示一般付款資訊
@@ -1784,22 +1859,26 @@ async function handlePaymentInfo(userId, replyToken) {
 • 點擊「課程介紹」查看所有課程並開始報名流程！`
 
       await safeReplyMessage(lineClientInstance, replyToken, generalPaymentInfo)
+      console.log('一般付款資訊已發送')
       return
     }
 
     // 已報名用戶，顯示個人付款資訊 Template
-    console.log('為已報名用戶顯示付款資訊:', { userId, course: user.course })
+    console.log('為已報名用戶顯示付款資訊:', { userId, course: user.course, name: user.name })
     const paymentTemplate = createPaymentInfoTemplate(user)
+    console.log('付款資訊模板:', JSON.stringify(paymentTemplate, null, 2))
     await safeReplyMessage(lineClientInstance, replyToken, paymentTemplate, userId)
-    console.log('付款資訊已成功發送')
+    console.log('付款資訊 Template 已成功發送')
 
   } catch (error) {
     console.error('顯示付款資訊時發生錯誤:', error)
     console.error('錯誤詳情:', error.stack)
+    console.error('錯誤訊息:', error.message)
     try {
-      await safeReplyMessage(lineClientInstance, replyToken, '抱歉，顯示付款資訊時發生錯誤，請稍後再試。')
+      await safeReplyMessage(lineClientInstance, replyToken, `抱歉，顯示付款資訊時發生錯誤：${error.message}`)
     } catch (replyError) {
       console.error('回覆錯誤訊息時發生錯誤:', replyError)
+      console.error('回覆錯誤詳情:', replyError.stack)
     }
   }
 }
